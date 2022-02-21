@@ -1,1 +1,1 @@
-from ._peakvi import PEAKVI
+from ._peakvi import CountPEAKVI, Baseline

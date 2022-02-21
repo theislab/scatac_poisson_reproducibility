@@ -1,1 +1,1 @@
-from ._peakvae import PEAKVAE
+from ._peakvae import CountVAE, BaselineCountVAE 

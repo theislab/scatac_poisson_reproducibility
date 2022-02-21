@@ -130,3 +130,6 @@ dmypy.json
 
 #callbacks
 wandb/
+figures/
+slurm_outputs/
+logs/
