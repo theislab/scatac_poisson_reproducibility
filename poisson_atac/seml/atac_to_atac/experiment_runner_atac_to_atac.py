@@ -56,10 +56,12 @@ class ExperimentWrapper:
         self.dataset = dataset
         self.batch = (batch if batch is not None else 'NONE')
         if dataset == "neurips":
-            self.adata = patac.data.load_neurips()
-            self.adata = self.adata[self.adata.obs.batch.isin(batch)].copy()
+            self.adata = patac.data.load_neurips(batch=batch)
         elif dataset == "hematopoiesis":
             self.adata = patac.data.load_hematopoiesis()
+        elif dataset == "neurips_multiome":
+            self.adata = patac.data.load_neurips(gex=True, batch=batch)
+            
 
     @ex.capture(prefix="model")
     def init_model(self, model_type: str):
@@ -70,6 +72,10 @@ class ExperimentWrapper:
             self.model = patac.model.CountPEAKVI
         elif model_type == "peakvi":
             self.model = scvi.model.PEAKVI
+        elif model_type == "linear_count":
+            self.model = patac.model.LinearCountPEAKVI
+        elif model_type == "gex":
+            self.model = patac.model.GEXtoATAC
 
     @ex.capture(prefix="optimization")
     def init_optimizer(self, regularization: dict):
@@ -79,8 +85,14 @@ class ExperimentWrapper:
     @ex.capture(prefix="setup")
     def setup_adata(self, layer, batch_key, label_key, model_params):
         self.label_key = label_key
-        self.model.setup_anndata(self.adata, layer=layer, batch_key=batch_key) # layer =None for peakvi!
+        if self.model_type == "gex":
+            setup_params = {'adata_gex_obsm_key': "X_gex"}
+        else:
+            setup_params = {}
+            
+        self.model.setup_anndata(self.adata, layer=layer, batch_key=batch_key, **setup_params) # layer =None for peakvi!
         self.model = self.model(self.adata, **model_params)
+        print(self.model.module)
         
     def init_all(self):
         """
