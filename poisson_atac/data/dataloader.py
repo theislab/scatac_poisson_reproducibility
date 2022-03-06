@@ -7,14 +7,22 @@ import numpy as np
 
 data_path = '/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data'
 
-def load_neurips(data_path=data_path, only_train=True):
+def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None):
     path = os.path.join(data_path, 'neurips', 'phase2-private-data/common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2.h5ad')
     adata = ad.read(path)
     adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
     adata.layers["counts"] = scipy.sparse.csr_matrix(adata.layers["counts"])
     adata.X = scipy.sparse.csr_matrix(adata.X)
+    adata.obs["size_factor"] = adata.layers["counts"].sum(axis =1)
+    if gex:
+        path = os.path.join(data_path, 'neurips', 'phase2-private-data/common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_rna.h5ad')
+        adata_gex = ad.read(path)
+        adata.obsm["X_gex"] = adata_gex.layers['counts'].A.copy()
     if only_train:   
-        adata = adata[adata.obs.is_train].copy()
+        adata = adata[adata.obs.is_train]
+    if batch is not None:
+        batch = ([batch] if isinstance(batch, str) else batch)
+        adata = adata[adata.obs["batch"].isin(batch)].copy()
     return adata
 
 # Cell types from https://satijalab.org/signac/articles/monocle.html
