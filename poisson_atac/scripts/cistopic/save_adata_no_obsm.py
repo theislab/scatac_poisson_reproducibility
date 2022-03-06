@@ -9,6 +9,12 @@ adata.layers = {}
 
 adata.write(os.path.join(path, "openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2_lean.h5ad"))
 
+for batch in adata.obs.batch.unique():
+    print(batch)
+    a_batch = adata[adata.obs.batch == batch].copy()
+    a_batch.write(os.path.join(path, f"openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2_lean_{batch}.h5ad"))
+
+
 path = "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data/GSE129785_scATAC-Hematopoiesis/"
 adata = patac.data.load_hematopoiesis()
 adata.obsm = {}
