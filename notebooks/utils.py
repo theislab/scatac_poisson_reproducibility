@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from poisson_atac.seml.atac_to_atac.experiment_runner_atac_to_atac import get_experiment
 
-matplotlib.style.use("fivethirtyeight")
+matplotlib.style.use("seaborn-colorblind")
 matplotlib.style.use("seaborn-talk")
 matplotlib.rcParams["font.family"] = "monospace"
 matplotlib.rcParams["figure.dpi"] = 60
@@ -49,6 +49,10 @@ def get_model_path(seml_collection, model_hash):
     )
     return results["result.model_path"].values[0]
 
+def get_test_indices(seml_collection, model_hash):
+    _, model, _ = load_experiment(seml_collection, model_hash)
+    return model.test_indices
+    
 def load_experiment(seml_collection, model_hash):
     config = load_config(seml_collection, model_hash)
     ex = get_experiment()
