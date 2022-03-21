@@ -33,4 +33,3 @@ for i, split in enumerate(splits):
     a_split[~a_split.obs.is_train].write(os.path.join(save_path, 
                                                  f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_test_mod2_split_{i}.h5ad'))
     
-    break
