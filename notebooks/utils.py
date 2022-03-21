@@ -7,11 +7,11 @@ import seaborn as sns
 from poisson_atac.seml.atac_to_atac.experiment_runner_atac_to_atac import get_experiment
 
 matplotlib.style.use("seaborn-colorblind")
-matplotlib.style.use("seaborn-talk")
-matplotlib.rcParams["font.family"] = "monospace"
-matplotlib.rcParams["figure.dpi"] = 60
-matplotlib.pyplot.rcParams["savefig.facecolor"] = "white"
-sns.set_context("poster")
+matplotlib.style.use("seaborn-poster")
+#matplotlib.rcParams["font.family"] = "monospace"
+#matplotlib.rcParams["figure.dpi"] = 60
+#matplotlib.pyplot.rcParams["savefig.facecolor"] = "white"
+#sns.set_context("paper")
 
 
     

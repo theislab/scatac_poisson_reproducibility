@@ -1,6 +1,7 @@
 import logging
 from functools import partial
 from typing import Dict, Iterable, List, Optional, Sequence, Union
+from xmlrpc.client import Boolean
 
 import numpy as np
 import pandas as pd
@@ -11,8 +12,8 @@ from scipy.sparse import csr_matrix, vstack
 from scvi._compat import Literal
 from scvi._constants import REGISTRY_KEYS
 from scvi._utils import _doc_params
-from scvi.data.anndata import AnnDataManager
-from scvi.data.anndata.fields import (
+from scvi.data import AnnDataManager
+from scvi.data.fields import (
     CategoricalJointObsField,
     CategoricalObsField,
     LayerField,
@@ -285,7 +286,7 @@ class CountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelCla
         n_samples_overall: Optional[int] = None,
         region_list: Optional[Sequence[str]] = None,
         use_z_mean: bool = True,
-        threshold: Optional[float] = None,
+        bernoulli: Optional[Boolean] = True,
         batch_size: int = 128,
         return_numpy: bool = False,
     ) -> Union[pd.DataFrame, np.ndarray, csr_matrix]:
@@ -341,16 +342,16 @@ class CountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelCla
                                    post=post,
                                    get_generative_input_kwargs=dict(),
                                    generative_kwargs=generative_kwargs,
-                                   threshold=threshold )
+                                   bernoulli=bernoulli)
 
         if return_numpy:
             return imputed
-        elif threshold:
-            return pd.DataFrame.sparse.from_spmatrix(
-                imputed,
-                index=adata.obs_names[indices],
-                columns=adata.var_names,
-            )
+        # elif threshold:
+        #     return pd.DataFrame.sparse.from_spmatrix(
+        #         imputed,
+        #         index=adata.obs_names[indices],
+        #         columns=adata.var_names,
+        #     )
         else:
             return pd.DataFrame(
                 imputed,
@@ -361,7 +362,7 @@ class CountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelCla
                                 post=None,
                                 get_generative_input_kwargs: dict=None,
                                 generative_kwargs: dict=None,
-                                threshold=None):
+                                bernoulli=True):
         imputed = []
         for tensors in post:
             _, generative_outputs = self.module.forward(
@@ -370,14 +371,11 @@ class CountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelCla
                 generative_kwargs=generative_kwargs,
                 compute_loss=False,
             )
-            px_rate = generative_outputs["px_rate"].cpu() # now this is logit
-            p = 1 - torch.exp(Poisson(px_rate).log_prob(torch.Tensor([0])))
+            p = generative_outputs["px_rate"].cpu() 
+            if bernoulli:
+                p = 1 - torch.exp(Poisson(p).log_prob(torch.Tensor([0])))
             imputed.append(p)
-
-        if threshold:  # imputed is a list of csr_matrix objects
-            imputed = vstack(imputed, format="csr")
-        else:  # imputed is a list of tensors
-            imputed = torch.cat(imputed).numpy()
+        imputed = torch.cat(imputed).numpy()
         return imputed
     
     @_doc_params(
@@ -789,7 +787,7 @@ class LinearCountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseMo
         n_samples_overall: Optional[int] = None,
         region_list: Optional[Sequence[str]] = None,
         use_z_mean: bool = True,
-        threshold: Optional[float] = None,
+        bernoulli: Optional[Boolean] = True,
         batch_size: int = 128,
         return_numpy: bool = False,
     ) -> Union[pd.DataFrame, np.ndarray, csr_matrix]:
@@ -845,16 +843,16 @@ class LinearCountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseMo
                                    post=post,
                                    get_generative_input_kwargs=dict(),
                                    generative_kwargs=generative_kwargs,
-                                   threshold=threshold )
+                                   bernoulli=bernoulli)
 
         if return_numpy:
             return imputed
-        elif threshold:
-            return pd.DataFrame.sparse.from_spmatrix(
-                imputed,
-                index=adata.obs_names[indices],
-                columns=adata.var_names,
-            )
+        # elif threshold:
+        #     return pd.DataFrame.sparse.from_spmatrix(
+        #         imputed,
+        #         index=adata.obs_names[indices],
+        #         columns=adata.var_names,
+        #     )
         else:
             return pd.DataFrame(
                 imputed,
@@ -865,7 +863,7 @@ class LinearCountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseMo
                                 post=None,
                                 get_generative_input_kwargs: dict=None,
                                 generative_kwargs: dict=None,
-                                threshold=None):
+                                bernoulli=True):
         imputed = []
         for tensors in post:
             _, generative_outputs = self.module.forward(
@@ -874,14 +872,11 @@ class LinearCountPEAKVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseMo
                 generative_kwargs=generative_kwargs,
                 compute_loss=False,
             )
-            px_rate = generative_outputs["px_rate"].cpu() # now this is logit
-            p = 1 - torch.exp(Poisson(px_rate).log_prob(torch.Tensor([0])))
+            p = generative_outputs["px_rate"].cpu() 
+            if bernoulli:
+                p = 1 - torch.exp(Poisson(p).log_prob(torch.Tensor([0])))
             imputed.append(p)
-
-        if threshold:  # imputed is a list of csr_matrix objects
-            imputed = vstack(imputed, format="csr")
-        else:  # imputed is a list of tensors
-            imputed = torch.cat(imputed).numpy()
+        imputed = torch.cat(imputed).numpy()
         return imputed
     
     @_doc_params(

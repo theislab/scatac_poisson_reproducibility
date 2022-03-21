@@ -7,10 +7,12 @@ import numpy as np
 
 data_path = '/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data'
 
-def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None):
+def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None, convert_counts=True):
     path = os.path.join(data_path, 'neurips', 'phase2-private-data/common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2.h5ad')
     adata = ad.read(path)
-    adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
+    
+    if convert_counts:
+        adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
     adata.layers["counts"] = scipy.sparse.csr_matrix(adata.layers["counts"])
     adata.X = scipy.sparse.csr_matrix(adata.X)
     adata.obs["size_factor"] = adata.layers["counts"].sum(axis =1)
@@ -26,7 +28,7 @@ def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None):
     return adata
 
 # Cell types from https://satijalab.org/signac/articles/monocle.html
-def load_hematopoiesis(data_path=data_path):
+def load_hematopoiesis(data_path=data_path, convert_counts=True):
     cache_path = os.path.join(data_path, "GSE129785_scATAC-Hematopoiesis", "GSE129785_scATAC-Hematopoiesis.h5ad")
     cached = os.path.exists(cache_path)
     if cached:
@@ -34,7 +36,9 @@ def load_hematopoiesis(data_path=data_path):
         adata.obs_names_make_unique()
         sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
         adata.layers["counts"] = adata.X.copy()
-        adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
+        
+        if convert_counts:
+            adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
         adata.X = (adata.X > 0).astype(float)
     else:
         fn = [
