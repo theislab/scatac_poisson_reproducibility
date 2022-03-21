@@ -27,9 +27,11 @@ print(len(splits))
 
 for i, split in enumerate(splits):
     print(i)
-    a_split = adata[:, split].copy()
-    a_split[a_split.obs.is_train].write(os.path.join(save_path, 
-                                                     f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_train_mod2_split_{i}.h5ad'))
-    a_split[~a_split.obs.is_train].write(os.path.join(save_path, 
-                                                 f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_test_mod2_split_{i}.h5ad'))
+    a_split = adata[:, split]
+    a_train = a_split[a_split.obs.is_train]
+    a_train.write(os.path.join(save_path, 
+                               f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_train_mod2_split_{i}.h5ad'))
+    a_test=a_split[~a_split.obs.is_train]
+    a_test.write(os.path.join(save_path, 
+                f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_test_mod2_split_{i}.h5ad'))
     
