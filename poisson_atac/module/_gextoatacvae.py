@@ -133,24 +133,24 @@ class  GEXTOATACVAE(BaseModuleClass):
         )
 
         n_input_decoder = self.n_latent + n_continuous_cov
-        # self.decoder = DecoderSCVI(
-        #     n_input=n_input_decoder,
-        #     n_output=n_input_regions,
-        #     n_hidden=self.n_hidden,
-        #     n_cat_list=cat_list,
-        #     n_layers=self.n_layers_decoder,
-        #     use_batch_norm=self.use_batch_norm_decoder,
-        #     use_layer_norm=self.use_layer_norm_decoder,
-        #     deep_inject_covariates=self.deeply_inject_covariates,
-        # )
-        self.decoder = LinearDecoderSCVI(
+        self.decoder = DecoderSCVI(
             n_input=n_input_decoder,
             n_output=n_input_regions,
+            n_hidden=self.n_hidden,
             n_cat_list=cat_list,
+            n_layers=self.n_layers_decoder,
             use_batch_norm=self.use_batch_norm_decoder,
             use_layer_norm=self.use_layer_norm_decoder,
             deep_inject_covariates=self.deeply_inject_covariates,
         )
+        # self.decoder = LinearDecoderSCVI(
+        #     n_input=n_input_decoder,
+        #     n_output=n_input_regions,
+        #     n_cat_list=cat_list,
+        #     use_batch_norm=self.use_batch_norm_decoder,
+        #     use_layer_norm=self.use_layer_norm_decoder,
+        #     deep_inject_covariates=self.deeply_inject_covariates,
+        # )
         
     def _get_inference_input(self, tensors):
         x = tensors.get("GEX")
