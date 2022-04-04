@@ -1,2 +1,2 @@
-from ._peakvi import CountPEAKVI, LinearCountPEAKVI, Baseline
+from ._poissonvi import PoissonVI
 from ._gextoatacvi import GEXtoATAC, BinaryGEXtoATAC

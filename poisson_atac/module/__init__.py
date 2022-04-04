@@ -1,2 +1,2 @@
-from ._peakvae import CountVAE, LinearCountVAE, BaselineCountVAE, DecoderSCVI, LinearDecoderSCVI
+from ._poissonvae import  PoissonVAE, DecoderSCVI
 from ._gextoatacvae import GEXTOATACVAE, BinaryGEXTOATACVAE
