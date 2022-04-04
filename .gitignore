@@ -128,8 +128,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-#callbacks
+#custom
 wandb/
 figures/
 slurm_outputs/
 logs/
+scripts/
+miscellaneous/
+launch.json
+
