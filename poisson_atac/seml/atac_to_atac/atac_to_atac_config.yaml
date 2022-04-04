@@ -79,103 +79,100 @@ fixed:
     weight_decay: 1e-3
     learning_rate: 1e-4
 
-Baseline:
-  fixed:
-    model.model_type: "baseline"
-    setup.model_params:  {}
+# Baseline:
+#   fixed:
+#     model.model_type: "baseline"
+#     setup.model_params:  {}
 
-  neurips:
-    fixed:
-      data.dataset: "neurips"
-      setup.layer: "counts"
-      setup.batch_key: "batch"
-      setup.label_key: "cell_type"
+#   neurips:
+#     fixed:
+#       data.dataset: "neurips"
+#       setup.layer: "counts"
+#       setup.batch_key: "batch"
+#       setup.label_key: "cell_type"
 
-    grid:
-      data.batch: 
-        type: choice
-        options:
-          - "s1d1"
-          - "s2d1"
-          - "s3d10"
-          - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-          - "s1d2"
-          - "s1d3"
+#     grid:
+#       data.batch: 
+#         type: choice
+#         options:
+#           - "s1d1"
+#           - "s2d1"
+#           - "s3d10"
+#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
+#           - "s1d2"
+#           - "s1d3"
           
-          - "s2d4"
-          - "s2d5"
+#           - "s2d4"
+#           - "s2d5"
           
-          - "s3d3"
-          - "s3d6"
-          - "s3d7"
+#           - "s3d3"
+#           - "s3d6"
+#           - "s3d7"
 
-  hematopoiesis:
-    fixed:
-      data.dataset: "hematopoiesis"
-      setup.layer: "counts" 
-      setup.batch_key: None
-      setup.label_key: "cell_type"
-      data.batch: None
+#   hematopoiesis:
+#     fixed:
+#       data.dataset: "hematopoiesis"
+#       setup.layer: "counts" 
+#       setup.batch_key: None
+#       setup.label_key: "cell_type"
+#       data.batch: None
 
 # Count:
 #   grid:
 #     setup.model_params.n_latent:
 #       type: choice
 #       options:
-#         #- None
-#         #- 50
+#         - 20
+#         - 50
 #         - 80
 #         - 100
 #         - 110
 #         - 130
-#         #- 140
-#         #- 200
+#         - 140
+#         - 200
   
 #     model.model_type: 
 #       type: choice
 #       options:
-        # - "count"
+#         - "count"
     
-  # neurips:
-  #   fixed:
-  #     data.dataset: "neurips"
-  #     setup.layer: "counts"
-  #     setup.batch_key: "batch"
-  #     setup.label_key: "cell_type"
+#   neurips:
+#     fixed:
+#       data.dataset: "neurips"
+#       setup.layer: "counts"
+#       setup.batch_key: "batch"
+#       setup.label_key: "cell_type"
 
-  #   grid:
-  #     data.batch: 
-  #       type: choice
-  #       options:
-  #         - "s1d1"
-  #         - "s2d1"
-  #         - "s3d10"
-  #         - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-  #         - "s1d2"
-  #         - "s1d3"
-          
-  #         - "s2d4"
-  #         - "s2d5"
-          
-  #         - "s3d3"
-  #         - "s3d6"
-  #         - "s3d7"
-  #         # - ['s1d1','s1d2','s1d3','s2d1','s2d4','s2d5','s3d3','s3d6','s3d7'] #,'s3d10'
+#     grid:
+#       data.batch: 
+#         type: choice
+#         options:
+#           - "s1d1"
+#           - "s2d1"
+#           - "s3d10"
+#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
+#           - "s1d2"
+#           - "s1d3"
+#           - "s2d4"
+#           - "s2d5"
+#           - "s3d3"
+#           - "s3d6"
+#           - "s3d7"
+#           # - ['s1d1','s1d2','s1d3','s2d1','s2d4','s2d5','s3d3','s3d6','s3d7'] #,'s3d10'
 
-  # hematopoiesis:
-  # #TODO:  try with Group key as batch!
-  #   fixed:
-  #     data.dataset: "hematopoiesis"
-  #     setup.layer: "counts" 
-  #     setup.label_key: "cell_type"
-  #     data.batch: None
+#   hematopoiesis:
+#   #TODO:  try with Group key as batch!
+#     fixed:
+#       data.dataset: "hematopoiesis"
+#       setup.layer: "counts" 
+#       setup.label_key: "cell_type"
+#       data.batch: None
 
-  #   grid:
-  #     setup.batch_key:
-  #       type: choice
-  #       options:
-  #         - None
-  #         - "Group"
+#     grid:
+#       setup.batch_key:
+#         type: choice
+#         options:
+#           - "Group"
 
 # Peakvi:
 #   fixed:
@@ -185,7 +182,8 @@ Baseline:
 #     setup.model_params.n_latent:
 #       type: choice
 #       options:
-#         - None
+#         #- None
+#         - 20
 #         - 50
 #         - 80
 #         - 100
@@ -233,77 +231,98 @@ Baseline:
 #           - "Group"
 
 
-GEX:
-  fixed:
-    setup.model_params.use_layer_norm: "encoder"
-    setup.model_params.n_hidden: 150
-    model.model_type: "gex"
+# GEX:
+#   fixed:
+#     setup.model_params.use_layer_norm: "encoder"
+#     setup.model_params.n_hidden: 150
 
-  grid:
-    setup.model_params.n_latent:
-      type: choice
-      options:
-        - 80
-        - 100
-        - 110
-        - 130
+#   grid:
+#     setup.model_params.n_latent:
+#       type: choice
+#       options:
+#         - 80
+#         - 100
+#         - 110
+#         - 130
 
-  neurips:
-    fixed:
-      data.dataset: "neurips_multiome"
-      setup.layer: "counts"
-      setup.batch_key: "batch"
-      setup.label_key: "cell_type"
+#   neurips:
+#     fixed:
+#       data.dataset: "neurips_multiome"
+#       setup.layer: "counts"
+#       setup.batch_key: "batch"
+#       setup.label_key: "cell_type"
+#       model.model_type: "gex"
 
-    grid:
-      data.batch: 
-        type: choice
-        options:
-          - "s1d1"
-          - "s2d1"
-          - "s3d10"
-          - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-          - "s1d2"
-          - "s1d3"
-          
-          - "s2d4"
-          - "s2d5"
-          
-          - "s3d3"
-          - "s3d6"
-          - "s3d7"
-          # - ['s1d1','s1d2','s1d3','s2d1','s2d4','s2d5','s3d3','s3d6','s3d7'] #,'s3d10'
+#     grid:
+#       data.batch: 
+#         type: choice
+#         options:
+#           - "s1d1"
+#           - "s2d1"
+#           - "s3d10"
+#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
+#           - "s1d2"
+#           - "s1d3"
+#           - "s2d4"
+#           - "s2d5"
+#           - "s3d3"
+#           - "s3d6"
+#           - "s3d7"
 
-  hematopoiesis:
-  #TODO:  try with Group key as batch! --> works better
-    fixed:
-      data.dataset: "hematopoiesis"
-      setup.layer: "counts" 
-      setup.label_key: "cell_type"
-      data.batch: None
+#   neurips_no_batch:
+#     fixed:
+#       data.dataset: "neurips_multiome"
+#       setup.layer: "counts"
+#       setup.batch_key: None
+#       setup.label_key: "cell_type"
 
-    grid:
-      setup.batch_key:
-        type: choice
-        options:
-          - "Group"
+#     grid:
+#       data.batch: 
+#         type: choice
+#         options:
+#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
+#       model.model_type: 
+#         type: choice
+#         options:
+#           - "gex"
+#           - "gex_binary"
+
+#   hematopoiesis:
+#   #TODO:  try with Group key as batch! --> works better
+#     fixed:
+#       data.dataset: "hematopoiesis"
+#       setup.layer: "counts" 
+#       setup.label_key: "cell_type"
+#       data.batch: None
+
+#     grid:
+#       setup.batch_key:
+#         type: choice
+#         options:
+#           - "Group"
 
 LinearCount:
   fixed:
     setup.model_params.use_layer_norm: "encoder"
-    setup.model_params.n_hidden: 150
+    
   grid:
     setup.model_params.n_latent:
       type: choice
       options:
         #- None
-        #- 50
+        - 20
+        - 50
         - 80
         - 100
         - 110
         - 130
-        #- 140
-        #- 200
+        - 140
+        - 200
+    setup.model_params.n_hidden: 
+      type: choice
+      options:
+       #- 150
+       - None
   
     model.model_type: 
       type: choice
@@ -322,16 +341,16 @@ LinearCount:
         type: choice
         options:
           - "s1d1"
-          - "s2d1"
-          - "s3d10"
+          #- "s2d1"
+          #- "s3d10"
           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-          - "s1d2"
-          - "s1d3"
+          #- "s1d2"
+          #- "s1d3"
           - "s2d4"
           - "s2d5"
           - "s3d3"
-          - "s3d6"
-          - "s3d7"
+          #- "s3d6"
+          #- "s3d7"
           # - ['s1d1','s1d2','s1d3','s2d1','s2d4','s2d5','s3d3','s3d6','s3d7'] #,'s3d10'
 
   hematopoiesis:

@@ -61,13 +61,13 @@ seml:
   conda_environment: poisson_atac_new
 slurm:
   experiments_per_job: 1
-  max_simultaneous_jobs: 8
+  max_simultaneous_jobs: 10
   sbatch_options_template: GPU
   sbatch_options:
      gres: gpu:1       # num GPUs
      mem: 30G          # memory
      cpus-per-task: 4  # num cores
-     time: 0-10:01     # max time, D-HH:MM
+     time: 0-20:01     # max time, D-HH:MM
 
 ###### BEGIN PARAMETER CONFIGURATION ######
 
@@ -91,8 +91,9 @@ grid:
 
 Peakvi:
   fixed:
+    setup.model_params.use_layer_norm: "both"
     model.model_type: "peakvi"
-    setup.model_params.n_latent: 80
+    setup.model_params.n_latent: None
     
   neurips:
     fixed:
@@ -105,14 +106,14 @@ Peakvi:
       data.batch: 
         type: choice
         options:
+          - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
           - "s1d1"
           - "s2d1"
           - "s3d10"
-          - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4'] 
           - "s1d2"
           - "s1d3"
           - "s2d4"
-          - "s2d5"  
+          - "s2d5"
           - "s3d3"
           - "s3d6"
           - "s3d7"
@@ -126,12 +127,13 @@ Peakvi:
       data.batch: None
       setup.batch_key: "Group"
 
-LinearCount:
+
+Count:
 
   fixed:
-    setup.model_params.use_layer_norm: "encoder"
-    model.model_type: "linear_count"
-    setup.model_params.n_latent: 130
+    setup.model_params.use_layer_norm: "both"
+    model.model_type: "count"
+    setup.model_params.n_latent: None
     
   neurips:
     fixed:

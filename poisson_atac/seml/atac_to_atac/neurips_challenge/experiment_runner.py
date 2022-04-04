@@ -10,7 +10,7 @@ import pandas as pd
 from scipy import sparse
 import scvi
 import poisson_atac as patac
-from poisson_atac.seml import evaluate_test_cells, evaluate_embedding, evaluate_counts
+from poisson_atac.seml import evaluate_test_cells, evaluate_embedding, evaluation_table
 import sklearn.metrics
 
 import wandb
@@ -44,48 +44,48 @@ class ExperimentWrapper:
 
     # With the prefix option we can "filter" the configuration for the sub-dictionary under "data".
     @ex.capture(prefix="data")
-    def init_dataset(self, dataset, batch):
+    def init_dataset(self, dataset, batch, data_split, data_path):
         """
         Perform dataset loading, preprocessing etc.
         Since we set prefix="data", this method only gets passed the respective sub-dictionary, enabling a modular
         experiment design.
         """
+        self.dataset=dataset
         if isinstance(batch, str):
             batch = [batch]
-            
-        self.dataset = dataset
-        self.batch = (batch if batch is not None else 'NONE')
-        if dataset == "neurips":
-            self.adata = patac.data.load_neurips(batch=batch)
-        elif dataset == "hematopoiesis":
-            self.adata = patac.data.load_hematopoiesis()
-            
+        self.batch=batch
+        adata = patac.data.load_neurips(gex=True, batch=batch, only_train=False)
+        
+        #subset on 10000 peaks from Neurips
+        train_adata_mod2 = ad.read(os.path.join(data_path, f"openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_train_mod2_split_{data_split}.h5ad")) 
+        adata = adata[:, adata.var_names.isin(train_adata_mod2.var_names)]
+        
+        self.adata = adata[adata.obs.is_train].copy()
+        self.adata_test = adata[~adata.obs.is_train].copy()
+        del train_adata_mod2
+        del adata
 
     @ex.capture(prefix="model")
     def init_model(self, model_type: str):
         self.model_type = model_type
-        if model_type == "peakvi":
-            self.model = scvi.model.PEAKVI
-        elif model_type == "linear_count":
-            self.model = patac.model.LinearCountPEAKVI
-        elif model_type == "count":
-            self.model = patac.model.CountPEAKVI
+        if model_type == "gex":
+            self.model = patac.model.GEXtoATAC
+        elif model_type == "gex_binary":
+            self.model = patac.model.BinaryGEXtoATAC
 
     @ex.capture(prefix="optimization")
     def init_optimizer(self, regularization: dict):
         self.weight_decay = regularization['weight_decay']
         self.learning_rate = regularization['learning_rate']
-    
-    @ex.capture(prefix="scvi")  
-    def init_seed(self, seed):
-        scvi.settings.seed = seed
-        print(seed)
 
     @ex.capture(prefix="setup")
     def setup_adata(self, layer, batch_key, label_key, model_params):
         self.label_key = label_key
         self.batch_key = batch_key
-        setup_params = {}
+        if self.model_type == "gex" or self.model_type == "gex_binary":
+            setup_params = {'adata_gex_obsm_key': "X_gex"}
+        else:
+            setup_params = {}
             
         self.model.setup_anndata(self.adata, layer=layer, batch_key=batch_key, **setup_params) 
         self.model = self.model(self.adata, **model_params)
@@ -99,7 +99,6 @@ class ExperimentWrapper:
         self.init_model()
         self.setup_adata()
         self.init_optimizer()
-        self.init_seed()
     
     @ex.capture(prefix="training")
     def run(self, max_epochs, save_path, project_name):
@@ -110,7 +109,7 @@ class ExperimentWrapper:
                          lr=self.learning_rate,
                          weight_decay=self.weight_decay,
                          max_epochs=max_epochs,
-                         train_size=0.8, 
+                         train_size=0.9, 
                          validation_size=0.1
                          )
         wandb.finish()
@@ -121,33 +120,30 @@ class ExperimentWrapper:
         self.model.save(dir_path=model_path)   
         
         #Peak and cell evaluations:
-        if self.model_type == "peakvi":
+        if self.model_type == "gex_binary":
             kwargs = {"normalize_cells": True, "normalize_regions": True}
         else:
             kwargs = {}
-        test_cells = evaluate_test_cells(self.model, self.adata, **kwargs)
+        
+        if self.model_type == "gex":
+            size_factor = self.adata.layers["counts"].sum(axis =1)
+            y_mean = self.model.get_normalized_accessibility(self.adata_test, library = size_factor.mean()) # with mean training size factor
+            y_pred = self.model.get_accessibility_estimates(self.adata_test, return_numpy= True)
+            predictions = {'Model': y_pred, 'Mean': y_mean}
+            test_cells = evaluation_table(y_true=self.adata_test.X.A, predictions=predictions, bce=False)
+        else:
+            y_pred = self.model.get_accessibility_estimates(self.adata_test, return_numpy= True, **kwargs)
+            predictions = {'Model': y_pred}
+            test_cells = evaluation_table(y_true=self.adata_test.X.A, predictions=predictions, bce=False)
+    
         
         # Latent space evaluation:
-        X_emb = self.model.get_latent_representation(self.adata)
-        # We evaluate integration metrics when we have more than one batch
-        if (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" in self.adata.obs.columns):
-            mode = "extended"
-        elif (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" not in self.adata.obs.columns):
-            mode = "fast"
-        else:
-            mode="basic"
-            
-        metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
+        X_emb = self.model.get_latent_representation(self.adata_test)
+        metrics = evaluate_embedding(self.adata_test, X_emb, self.label_key, batch_key=self.batch_key, mode="basic")
+
         
-        if (self.model_type == "linear_count") or (self.model_type == "count"):
-            test_cells_counts = evaluate_counts(self.model, self.adata)
-        else:
-            test_cells_counts = None
-            
-            
         results = {
             'test_cells': test_cells,
-            'test_cells_counts': test_cells_counts,
             'embedding': metrics,
             'average_precision': test_cells.loc['average_precision', 'Model'],
             'rmse': test_cells.loc['rmse', 'Model'],

@@ -54,17 +54,17 @@
 
 
 seml:
-  executable: poisson_atac/seml/atac_to_atac/experiment_runner_atac_to_atac_cistopic.py
-  name: ATAC_ATAC_prediction
+  executable: poisson_atac/seml/atac_to_atac/neurips_challenge/experiment_runner.py
+  name: Neurips_challenge
   output_dir: poisson_atac/seml/logs
   project_root_dir: /storage/groups/ml01/code/laura.martens/atac_poisson_study/
   conda_environment: poisson_atac_new
 slurm:
   experiments_per_job: 1
   max_simultaneous_jobs: 8
-  sbatch_options_template: CPU
+  sbatch_options_template: GPU
   sbatch_options:
- #    gres: gpu:1       # num GPUs
+     gres: gpu:1       # num GPUs
      mem: 50G          # memory
      cpus-per-task: 4  # num cores
      time: 0-10:01     # max time, D-HH:MM
@@ -72,38 +72,35 @@ slurm:
 ###### BEGIN PARAMETER CONFIGURATION ######
 
 fixed:
-  training.save_path: "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/models/cistopic/"
-  model.model_type: "cistopic"
+  training.max_epochs: 500
+  training.save_path: "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/models/seml"
+  training.project_name: "atac_to_atac"
+  optimization.regularization:
+    weight_decay: 1e-3
+    learning_rate: 1e-4
 
-neurips:
+  data.dataset: "neurips_multiome"
+  setup.layer: "counts"
+  setup.batch_key: None
+  setup.label_key: "cell_type"
+  data.batch: None
+  data.data_path: "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data/neurips/phase2-private-data/predict_modality/openproblems_bmmc_multiome_phase2_rna"
+
+grid:
+  data.data_split:
+    type: range
+    min: 0
+    max: 11
+    step: 1
+
+
+GEX_Count:
   fixed:
-    data.dataset: "neurips"
-    setup.batch_key: "batch"
-    setup.label_key: "cell_type"
+    setup.model_params.n_latent: None # Default n_latent since we only have 10000 peaks
+    model.model_type: "gex"
 
-  grid:
-    data.batch: 
-      type: choice
-      options:
-        - "s1d1"
-        - "s2d1"
-        - "s3d10"
-        - "s1d2"
-        - "s1d3"
-        - "s2d4"
-        - "s2d5"
-        - "s3d3"
-        - "s3d6"
-        - "s3d7"
-        - None
-
-hematopoiesis:
-    fixed:
-      data.dataset: "hematopoiesis"
-      setup.batch_key: None
-      setup.label_key: "cell_type"
-      data.batch: None
-
-
-
+GEX_Binary:
+  fixed:
+    setup.model_params.n_latent: None 
+    model.model_type: "gex_binary"
 

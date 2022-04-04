@@ -76,6 +76,8 @@ class ExperimentWrapper:
             self.model = patac.model.LinearCountPEAKVI
         elif model_type == "gex":
             self.model = patac.model.GEXtoATAC
+        elif model_type == "gex_binary":
+            self.model = patac.model.BinaryGEXtoATAC
 
     @ex.capture(prefix="optimization")
     def init_optimizer(self, regularization: dict):
@@ -85,7 +87,8 @@ class ExperimentWrapper:
     @ex.capture(prefix="setup")
     def setup_adata(self, layer, batch_key, label_key, model_params):
         self.label_key = label_key
-        if self.model_type == "gex":
+        self.batch_key = batch_key
+        if self.model_type == "gex" or self.model_type == "gex_binary":
             setup_params = {'adata_gex_obsm_key': "X_gex"}
         else:
             setup_params = {}
@@ -123,8 +126,8 @@ class ExperimentWrapper:
         self.model.save(dir_path=model_path)   
         
         #Peak and cell evaluations:
-        if self.model_type == "peakvi":
-            kwargs = {"normalize_cells": True, "normalize_regions": False}
+        if self.model_type == "peakvi" or self.model_type == "gex_binary":
+            kwargs = {"normalize_cells": True, "normalize_regions": True}
         else:
             kwargs = {}
         test_cells = evaluate_test_cells(self.model, self.adata, **kwargs)
@@ -132,7 +135,7 @@ class ExperimentWrapper:
         # Latent space evaluation:
         if self.model_type != "baseline":
             X_emb = self.model.get_latent_representation(self.adata)
-            metrics = evaluate_embedding(self.adata, X_emb, self.label_key)
+            metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode="basic")
         else:
             metrics = pd.DataFrame(index=['NMI_cluster/label', 'ARI_cluster/label'], data={0: np.array([0,0])})
         

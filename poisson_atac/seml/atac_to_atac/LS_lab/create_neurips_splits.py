@@ -2,7 +2,7 @@ import anndata as ad
 import os
 import numpy as np
 
-data_path = '/mnt/data/output/datasets/'
+data_path = '/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data/neurips/phase2-private-data/'
 save_path = os.path.join(data_path, 'predict_modality', 'openproblems_bmmc_multiome_phase2_rna')
 
 path = os.path.join(data_path, 'common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2.h5ad')
@@ -28,10 +28,10 @@ print(len(splits))
 for i, split in enumerate(splits):
     print(i)
     a_split = adata[:, split]
-    a_train = a_split[a_split.obs.is_train]
+    a_train = a_split[a_split.obs.is_train].copy()
     a_train.write(os.path.join(save_path, 
                                f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_train_mod2_split_{i}.h5ad'))
-    a_test=a_split[~a_split.obs.is_train]
+    a_test=a_split[~a_split.obs.is_train].copy()
     a_test.write(os.path.join(save_path, 
                 f'openproblems_bmmc_multiome_phase2_rna.censor_dataset.output_test_mod2_split_{i}.h5ad'))
     
