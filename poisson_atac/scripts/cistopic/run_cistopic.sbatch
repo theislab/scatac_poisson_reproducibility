@@ -15,7 +15,7 @@ source $HOME/.bashrc
 
 source activate signac
 
-batches=(hematopoiesis) #(s1d1 s1d2 s1d3 s2d1 s2d4 s2d5 s3d10 s3d3 s3d6 s3d7) #Change accordingly(hematopoiesis neurips) #
+batches=(s1d1 s1d2 s1d3 s2d1 s2d4 s2d5 s3d10 s3d3 s3d6 s3d7) #Change accordingly(hematopoiesis neurips) #
 
 echo ${batches[@]}
 
