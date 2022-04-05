@@ -4,6 +4,7 @@ import pandas as pd
 import scanpy as sc
 import scipy.io
 import numpy as np
+from ._utils import reads_to_fragments
 
 data_path = '/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data'
 
@@ -12,7 +13,8 @@ def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None, co
     adata = ad.read(path)
     
     if convert_counts:
-        adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
+        reads_to_fragments(adata, layer="counts")
+        
     adata.layers["counts"] = scipy.sparse.csr_matrix(adata.layers["counts"])
     adata.X = scipy.sparse.csr_matrix(adata.X)
     adata.obs["size_factor"] = adata.layers["counts"].sum(axis =1)
@@ -38,7 +40,7 @@ def load_hematopoiesis(data_path=data_path, convert_counts=True):
         adata.layers["counts"] = adata.X.copy()
         
         if convert_counts:
-            adata.layers["counts"].data = np.ceil(adata.layers["counts"].data/2)
+            reads_to_fragments(adata, layer="counts")
         adata.X = (adata.X > 0).astype(float)
     else:
         fn = [
