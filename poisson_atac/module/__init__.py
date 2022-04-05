@@ -1,2 +1,2 @@
-from ._poissonvae import  PoissonVAE, DecoderSCVI
+from ._poissonvae import  PoissonVAE, DecoderPoissonVI
 from ._gextoatacvae import GEXTOATACVAE, BinaryGEXTOATACVAE

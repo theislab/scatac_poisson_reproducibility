@@ -11,8 +11,7 @@ from scvi.module.base import BaseModuleClass, LossRecorder, auto_move_data
 from scvi.nn import Encoder, FCLayers
 from scvi.module._peakvae import Decoder
 
-from poisson_atac.module import DecoderSCVI
-from poisson_atac.module._peakvae import LinearDecoderSCVI
+from poisson_atac.module import DecoderPoissonVI
 
 class  GEXTOATACVAE(BaseModuleClass):
     """
