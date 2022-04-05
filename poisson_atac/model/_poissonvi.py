@@ -17,22 +17,24 @@ from scvi.data.fields import (
     CategoricalJointObsField,
     CategoricalObsField,
     LayerField,
+    NumericalObsField,
     NumericalJointObsField,
 )
 from scvi.model._utils import (
     _get_batch_code_from_category,
     scatac_raw_counts_properties,
 )
+from scvi.model._utils import _init_library_size
 from scvi.model.base import UnsupervisedTrainingMixin
-from scvi.module import PEAKVAE
 from scvi.train._callbacks import SaveBestState
 from scvi.utils._docstrings import doc_differential_expression, setup_anndata_dsp
 
 from scvi.model.base import ArchesMixin, BaseModelClass, VAEMixin
 from scvi.model.base._utils import _de_core
 
-from poisson_atac.module import CountVAE, BaselineCountVAE, LinearCountVAE #PEAKVAE
+from poisson_atac.module import PoissonVAE
 from torch.distributions import Poisson
+
 
 class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
@@ -86,8 +88,6 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
         n_layers_encoder: int = 2,
         n_layers_decoder: int = 2,
         dropout_rate: float = 0.1,
-        model_depth: bool = True,
-        region_factors: bool = True,
         use_batch_norm: Literal["encoder", "decoder", "none", "both"] = "none",
         use_layer_norm: Literal["encoder", "decoder", "none", "both"] = "both",
         latent_distribution: Literal["normal", "ln"] = "normal",
@@ -105,7 +105,17 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
             else []
         )
         n_batch = self.summary_stats.n_batch
-
+        
+        use_size_factor_key = (
+            REGISTRY_KEYS.SIZE_FACTOR_KEY in self.adata_manager.data_registry
+        )
+        
+        library_log_means, library_log_vars = None, None
+        if not use_size_factor_key:
+            library_log_means, library_log_vars = _init_library_size(
+                self.adata_manager, n_batch
+            )
+            
         self.module = PoissonVAE(
             n_input_regions=self.summary_stats.n_vars,
             n_batch=n_batch,
@@ -120,11 +130,15 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
             use_layer_norm=use_layer_norm,
             latent_distribution=latent_distribution,
             deeply_inject_covariates=deeply_inject_covariates,
-            encode_covariates=encode_covariates,
+            encode_covariates=encode_covariates,            
+            use_size_factor_key=use_size_factor_key,
+            library_log_means=library_log_means,
+            library_log_vars=library_log_vars,
             **model_kwargs,
         )
+        
         self._model_summary_string = (
-            "PeakVI Model with params: \nn_hidden: {}, n_latent: {}, n_layers_encoder: {}, "
+            "PoissonVI Model with params: \nn_hidden: {}, n_latent: {}, n_layers_encoder: {}, "
             "n_layers_decoder: {} , dropout_rate: {}, latent_distribution: {}, deep injection: {}, "
             "encode_covariates: {}"
         ).format(
@@ -379,149 +393,40 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
         imputed = torch.cat(imputed).numpy()
         return imputed
     
-    @_doc_params(
-        doc_differential_expression=doc_differential_expression,
-    )
-    def differential_accessibility(
-        self,
-        adata: Optional[AnnData] = None,
-        groupby: Optional[str] = None,
-        group1: Optional[Iterable[str]] = None,
-        group2: Optional[str] = None,
-        idx1: Optional[Union[Sequence[int], Sequence[bool], str]] = None,
-        idx2: Optional[Union[Sequence[int], Sequence[bool], str]] = None,
-        mode: Literal["vanilla", "change"] = "change",
-        delta: float = 0.05,
-        batch_size: Optional[int] = None,
-        all_stats: bool = True,
-        batch_correction: bool = False,
-        batchid1: Optional[Iterable[str]] = None,
-        batchid2: Optional[Iterable[str]] = None,
-        fdr_target: float = 0.05,
-        silent: bool = False,
-        two_sided: bool = True,
-        **kwargs,
-    ) -> pd.DataFrame:
-        r"""
-        A unified method for differential accessibility analysis.
-        Implements `"vanilla"` DE [Lopez18]_ and `"change"` mode DE [Boyeau19]_.
-        Parameters
-        ----------
-        {doc_differential_expression}
-        two_sided
-            Whether to perform a two-sided test, or a one-sided test.
-        **kwargs
-            Keyword args for :meth:`scvi.model.base.DifferentialComputation.get_bayes_factors`
-        Returns
-        -------
-        Differential accessibility DataFrame with the following columns:
-        prob_da
-            the probability of the region being differentially accessible
-        is_da_fdr
-            whether the region passes a multiple hypothesis correction procedure with the target_fdr
-            threshold
-        bayes_factor
-            Bayes Factor indicating the level of significance of the analysis
-        effect_size
-            the effect size, computed as (accessibility in population 2) - (accessibility in population 1)
-        emp_effect
-            the empirical effect, based on observed detection rates instead of the estimated accessibility
-            scores from the PeakVI model
-        est_prob1
-            the estimated probability of accessibility in population 1
-        est_prob2
-            the estimated probability of accessibility in population 2
-        emp_prob1
-            the empirical (observed) probability of accessibility in population 1
-        emp_prob2
-            the empirical (observed) probability of accessibility in population 2
-        """
-        adata = self._validate_anndata(adata)
-        col_names = adata.var_names
-        model_fn = partial(
-            self.get_accessibility_estimates, use_z_mean=False, batch_size=batch_size
-        )
-
-        # TODO check if change_fn in kwargs and raise error if so
-        def change_fn(a, b):
-            return a - b
-
-        if two_sided:
-
-            def m1_domain_fn(samples):
-                return np.abs(samples) >= delta
-
-        else:
-
-            def m1_domain_fn(samples):
-                return samples >= delta
-
-        result = _de_core(
-            adata_manager=self.get_anndata_manager(adata, required=True),
-            model_fn=model_fn,
-            groupby=groupby,
-            group1=group1,
-            group2=group2,
-            idx1=idx1,
-            idx2=idx2,
-            all_stats=all_stats,
-            all_stats_fn=scatac_raw_counts_properties,
-            col_names=col_names,
-            mode=mode,
-            batchid1=batchid1,
-            batchid2=batchid2,
-            delta=delta,
-            batch_correction=batch_correction,
-            fdr=fdr_target,
-            change_fn=change_fn,
-            m1_domain_fn=m1_domain_fn,
-            silent=silent,
-            **kwargs,
-        )
-
-        # manually change the results DataFrame to fit a PeakVI differential accessibility results
-        result = pd.DataFrame(
-            {
-                "prob_da": result.proba_de,
-                "is_da_fdr": result.loc[:, "is_de_fdr_{}".format(fdr_target)],
-                "bayes_factor": result.bayes_factor,
-                "effect_size": result.scale2 - result.scale1,
-                "emp_effect": result.emp_mean2 - result.emp_mean1,
-                "est_prob1": result.scale1,
-                "est_prob2": result.scale2,
-                "emp_prob1": result.emp_mean1,
-                "emp_prob2": result.emp_mean2,
-            },
-        )
-        return result
 
     @classmethod
     @setup_anndata_dsp.dedent
     def setup_anndata(
         cls,
         adata: AnnData,
+        layer: Optional[str] = None,
         batch_key: Optional[str] = None,
         labels_key: Optional[str] = None,
+        size_factor_key: Optional[str] = None,
         categorical_covariate_keys: Optional[List[str]] = None,
         continuous_covariate_keys: Optional[List[str]] = None,
-        layer: Optional[str] = None,
         **kwargs,
     ):
         """
         %(summary)s.
         Parameters
         ----------
+        %(param_layer)s
         %(param_batch_key)s
         %(param_labels_key)s
-        %(param_layer)s
+        %(param_size_factor_key)s
         %(param_cat_cov_keys)s
         %(param_cont_cov_keys)s
         """
+        
         setup_method_args = cls._get_setup_method_args(**locals())
         anndata_fields = [
             LayerField(REGISTRY_KEYS.X_KEY, layer, is_count_data=True),
             CategoricalObsField(REGISTRY_KEYS.BATCH_KEY, batch_key),
             CategoricalObsField(REGISTRY_KEYS.LABELS_KEY, labels_key),
+            NumericalObsField(
+                REGISTRY_KEYS.SIZE_FACTOR_KEY, size_factor_key, required=False
+            ),
             CategoricalJointObsField(
                 REGISTRY_KEYS.CAT_COVS_KEY, categorical_covariate_keys
             ),
@@ -534,3 +439,5 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
         )
         adata_manager.register_fields(adata, **kwargs)
         cls.register_manager(adata_manager)
+        
+        
