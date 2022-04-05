@@ -74,96 +74,129 @@ slurm:
 fixed:
   training.max_epochs: 500
   training.save_path: "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/models/seml"
-  training.project_name: "cv_atac_to_atac"
+  training.project_name: "atac_to_atac"
   optimization.regularization:
     weight_decay: 1e-3
     learning_rate: 1e-4
 
-grid:
-  scvi.seed:
-    type: choice
-    options: 
-        - 0
-        - 1
-        - 2
-        - 3
-        - 4
-
-Peakvi:
+#Intial sweep for finding optimal n_latent
+Initial_sweep:
   fixed:
+    #model
+    scvi.seed: 0
     setup.model_params.use_layer_norm: "both"
-    model.model_type: "peakvi"
-    setup.model_params.n_latent: None
+    setup.model_params.use_observed_lib_size: False
+
+    #data
+    data.dataset: "neurips" #only testing on Neurips
+    setup.batch_key: "batch"
+    setup.label_key: "cell_type"
+    data.batch: ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4'] # all training batches
+
+  grid:
+    setup.model_params.n_latent:
+      type: range
+      min: 10
+      max: 121
+      step: 10
+
+  Poissonvi:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      
+  Peakvi:
+    fixed:
+      model.model_type: "peakvi"
+      setup.layer: None #using binary data
+
+
+
+
+
+# Peakvi:
+#   fixed:
+#     setup.model_params.use_layer_norm: "both"
+#     model.model_type: "peakvi"
+#     setup.model_params.n_latent: None
     
-  neurips:
-    fixed:
-      data.dataset: "neurips"
-      setup.layer: None
-      setup.batch_key: "batch"
-      setup.label_key: "cell_type"
+#   neurips:
+#     fixed:
+#       data.dataset: "neurips"
+#       setup.layer: None
+#       setup.batch_key: "batch"
+#       setup.label_key: "cell_type"
 
-    grid:
-      data.batch: 
-        type: choice
-        options:
-          - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-          - "s1d1"
-          - "s2d1"
-          - "s3d10"
-          - "s1d2"
-          - "s1d3"
-          - "s2d4"
-          - "s2d5"
-          - "s3d3"
-          - "s3d6"
-          - "s3d7"
+#     grid:
+#       data.batch: 
+#         type: choice
+#         options:
+#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
+#           - "s1d1"
+#           - "s2d1"
+#           - "s3d10"
+#           - "s1d2"
+#           - "s1d3"
+#           - "s2d4"
+#           - "s2d5"
+#           - "s3d3"
+#           - "s3d6"
+#           - "s3d7"
 
-  hematopoiesis:
+#   hematopoiesis:
 
-    fixed:
-      data.dataset: "hematopoiesis"
-      setup.layer: None
-      setup.label_key: "cell_type"
-      data.batch: None
-      setup.batch_key: "Group"
+#     fixed:
+#       data.dataset: "hematopoiesis"
+#       setup.layer: None
+#       setup.label_key: "cell_type"
+#       data.batch: None
+#       setup.batch_key: "Group"
 
 
-Count:
+# Count:
 
-  fixed:
-    setup.model_params.use_layer_norm: "both"
-    model.model_type: "count"
-    setup.model_params.n_latent: None
+#   fixed:
+#     setup.model_params.use_layer_norm: "both"
+#     model.model_type: "count"
+#     setup.model_params.n_latent: None
     
-  neurips:
-    fixed:
-      data.dataset: "neurips"
-      setup.layer: "counts"
-      setup.batch_key: "batch"
-      setup.label_key: "cell_type"
+#   neurips:
+#     fixed:
+#       data.dataset: "neurips"
+#       setup.layer: "counts"
+#       setup.batch_key: "batch"
+#       setup.label_key: "cell_type"
 
-    grid:
-      data.batch: 
-        type: choice
-        options:
-          - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-          - "s1d1"
-          - "s2d1"
-          - "s3d10"
-          - "s1d2"
-          - "s1d3"
-          - "s2d4"
-          - "s2d5"
-          - "s3d3"
-          - "s3d6"
-          - "s3d7"
+#     grid:
+#       data.batch: 
+#         type: choice
+#         options:
+#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
+#           - "s1d1"
+#           - "s2d1"
+#           - "s3d10"
+#           - "s1d2"
+#           - "s1d3"
+#           - "s2d4"
+#           - "s2d5"
+#           - "s3d3"
+#           - "s3d6"
+#           - "s3d7"
 
-  hematopoiesis:
+#   hematopoiesis:
 
-    fixed:
-      data.dataset: "hematopoiesis"
-      setup.layer: "counts" 
-      setup.label_key: "cell_type"
-      data.batch: None
-      setup.batch_key: "Group"
+#     fixed:
+#       data.dataset: "hematopoiesis"
+#       setup.layer: "counts" 
+#       setup.label_key: "cell_type"
+#       data.batch: None
+#       setup.batch_key: "Group"
 
+#     scvi.seed:
+#       type: choice
+#       options: 
+#           - 0
+#           - 1
+#           - 2
+#           - 3
+#           - 4

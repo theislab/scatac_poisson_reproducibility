@@ -56,7 +56,7 @@ class ExperimentWrapper:
         self.dataset = dataset
         self.batch = (batch if batch is not None else 'NONE')
         if dataset == "neurips":
-            self.adata = patac.data.load_neurips(batch=batch)
+            self.adata = patac.data.load_neurips(batch=batch, only_train=False)
         elif dataset == "hematopoiesis":
             self.adata = patac.data.load_hematopoiesis()
             
@@ -66,10 +66,8 @@ class ExperimentWrapper:
         self.model_type = model_type
         if model_type == "peakvi":
             self.model = scvi.model.PEAKVI
-        elif model_type == "linear_count":
-            self.model = patac.model.LinearCountPEAKVI
-        elif model_type == "count":
-            self.model = patac.model.CountPEAKVI
+        elif model_type == "poissonvi":
+            self.model = patac.model.PoissonVI
 
     @ex.capture(prefix="optimization")
     def init_optimizer(self, regularization: dict):
@@ -123,8 +121,8 @@ class ExperimentWrapper:
         #Peak and cell evaluations:
         if self.model_type == "peakvi":
             kwargs = {"normalize_cells": True, "normalize_regions": True}
-        else:
-            kwargs = {}
+        elif self.model_type == "poissonvi":
+            kwargs = {"library_size": "latent", "binarize": True}
         test_cells = evaluate_test_cells(self.model, self.adata, **kwargs)
         
         # Latent space evaluation:
@@ -139,8 +137,9 @@ class ExperimentWrapper:
             
         metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
         
-        if (self.model_type == "linear_count") or (self.model_type == "count"):
-            test_cells_counts = evaluate_counts(self.model, self.adata)
+        if self.model_type == "poissonvi":
+            kwargs = {"library_size": "latent", "binarize": False}
+            test_cells_counts = evaluate_counts(self.model, self.adata, **kwargs)
         else:
             test_cells_counts = None
             

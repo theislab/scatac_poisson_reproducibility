@@ -39,7 +39,7 @@ def setup_prediction_dict(adata, model, cell_idx, **kwargs):
 #TODO: I have no idea why it somtimes fails with floats and sometimes not
 def bce_loss(y_true, y_pred): 
     try:
-        bce = torch.nn.BCELoss(reduction="none")(torch.from_numpy(y_pred), torch.from_numpy(y_true).float()).sum(dim=-1)
+        bce = torch.nn.BCELoss(reduction="none")(torch.from_numpy(y_pred).float(), torch.from_numpy(y_true).float()).sum(dim=-1)
     except:
         bce = torch.nn.BCELoss(reduction="none")(torch.from_numpy(y_pred), torch.from_numpy(y_true)).sum(dim=-1)
     return bce.sum().numpy()/y_true.shape[0]
@@ -86,7 +86,7 @@ def evaluate_embedding(adata, X_emb, labels_key, batch_key="batch", mode='basic'
                      batch_key=batch_key, 
                      label_key=labels_key, 
                      trajectory_=True, 
-                     pseudotime_key="pseudotime_order_GEX", 
+                     pseudotime_key="pseudotime_order_ATAC", 
                      nmi_=True, embed="X_emb", 
                      ari_=True,
                      silhouette_=True,
@@ -95,7 +95,7 @@ def evaluate_embedding(adata, X_emb, labels_key, batch_key="batch", mode='basic'
                      isolated_labels_asw_=True,
                      graph_conn_=True,
                      pcr_=True,
-                     lisi_graph_=True, #at the moment problems with r2py
+                     lisi_graph_=True, 
                      ilisi_=True,
                      clisi_=True,
                      verbose=True)
@@ -115,7 +115,7 @@ def evaluate_embedding(adata, X_emb, labels_key, batch_key="batch", mode='basic'
                      isolated_labels_asw_=True,
                      graph_conn_=True,
                      pcr_=True,
-                     lisi_graph_=True, #at the moment problems with r2py
+                     lisi_graph_=True, 
                      ilisi_=True,
                      clisi_=True,
                      verbose=True)
@@ -135,7 +135,6 @@ def evaluate_counts(model, adata, cell_idx=None, **kwargs):
     y_pred = model.get_accessibility_estimates(adata, 
                                                 indices=cell_idx, 
                                                 return_numpy=True,
-                                                bernoulli=False,
                                                 **kwargs
                                             )
     r2 = sklearn.metrics.r2_score(y_true.ravel(), y_pred.ravel())
