@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import partial
 from typing import Dict, Iterable, List, Optional, Sequence, Union
 from xmlrpc.client import Boolean
@@ -29,14 +30,14 @@ from scvi.model.base import UnsupervisedTrainingMixin
 from scvi.train._callbacks import SaveBestState
 from scvi.utils._docstrings import doc_differential_expression, setup_anndata_dsp
 
-from scvi.model.base import ArchesMixin, BaseModelClass, VAEMixin
+from scvi.model.base import ArchesMixin, BaseModelClass, VAEMixin, RNASeqMixin
 from scvi.model.base._utils import _de_core
 
 from poisson_atac.module import PoissonVAE
 from torch.distributions import Poisson
 
 
-class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
+class PoissonVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
     Peak Variational Inference [Ashuach21]_
     Parameters
@@ -252,14 +253,16 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
         )
 
     @torch.no_grad()
-    def get_library_size_factors(
+    def get_latent_library_size(
         self,
         adata: Optional[AnnData] = None,
-        indices: Sequence[int] = None,
-        batch_size: int = 128,
-    ) -> Dict[str, np.ndarray]:
-        """
-        Return library size factors.
+        indices: Optional[Sequence[int]] = None,
+        give_mean: bool = True,
+        batch_size: Optional[int] = None,
+    ) -> np.ndarray:
+        r"""
+        Returns the latent library size for each cell.
+        This is denoted as :math:`\ell_n` in the scVI paper.
         Parameters
         ----------
         adata
@@ -267,132 +270,172 @@ class PoissonVI(ArchesMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass
             AnnData object used to initialize the model.
         indices
             Indices of cells in adata to use. If `None`, all cells are used.
+        give_mean
+            Return the mean or a sample from the posterior distribution.
         batch_size
             Minibatch size for data loading into model. Defaults to `scvi.settings.batch_size`.
-        Returns
-        -------
-        Library size factor for expression and accessibility
         """
+        self._check_if_trained(warn=False)
+
         adata = self._validate_anndata(adata)
         scdl = self._make_data_loader(
             adata=adata, indices=indices, batch_size=batch_size
         )
-
-        library_sizes = []
+        libraries = []
         for tensors in scdl:
             inference_inputs = self.module._get_inference_input(tensors)
             outputs = self.module.inference(**inference_inputs)
-            library_sizes.append(outputs["d"].cpu())
 
-        return torch.cat(library_sizes).numpy().squeeze()
+            library = outputs["library"]
+            if not give_mean:
+                library = torch.exp(library)
+            else:
+                ql_m = outputs["ql_m"]
+                ql_v = outputs["ql_v"]
+                if ql_m is None or ql_v is None:
+                    raise RuntimeError(
+                        "The module for this model does not compute the posterior distribution "
+                        "for the library size. Set `give_mean` to False to use the observed library size instead."
+                    )
+                library = torch.distributions.LogNormal(ql_m, ql_v.sqrt()).mean
+            libraries += [library.cpu()]
+        return torch.cat(libraries).numpy()
 
     @torch.no_grad()
     def get_region_factors(self):
         """Return region-specific factors."""
-        if self.module.region_factors is None:
-            raise RuntimeError("region factors were not included in this model")
-        return torch.sigmoid(self.module.region_factors).cpu().numpy()
+        raise NotImplementedError("This function is not yet implemented")
 
     @torch.no_grad()
+    # This is adapted from scvi
     def get_accessibility_estimates(
         self,
         adata: Optional[AnnData] = None,
-        indices: Sequence[int] = None,
-        n_samples_overall: Optional[int] = None,
+        indices: Optional[Sequence[int]] = None,
+        transform_batch: Optional[Sequence[Union[int, str]]] = None,
         region_list: Optional[Sequence[str]] = None,
-        use_z_mean: bool = True,
-        bernoulli: Optional[Boolean] = True,
-        batch_size: int = 128,
-        return_numpy: bool = False,
-    ) -> Union[pd.DataFrame, np.ndarray, csr_matrix]:
-        """
-        Impute the full accessibility matrix.
-
-        Returns a matrix of accessibility probabilities for each cell and genomic region in the input
-        (for return matrix A, A[i,j] is the probability that region j is accessible in cell i).
-
+        library_size: Union[float, Literal["latent"]] = 1,
+        n_samples: int = 1,
+        n_samples_overall: int = None,
+        batch_size: Optional[int] = None,
+        return_mean: bool = True,
+        return_numpy: Optional[bool] = None,
+        binarize=True,
+    ) -> Union[np.ndarray, pd.DataFrame]:
+        r"""
+        Returns the normalized (decoded) accessibility.
         Parameters
         ----------
         adata
-            AnnData object that has been registered with scvi. If `None`, defaults to the
+            AnnData object with equivalent structure to initial AnnData. If `None`, defaults to the
             AnnData object used to initialize the model.
         indices
             Indices of cells in adata to use. If `None`, all cells are used.
-        n_samples_overall
-            Number of samples to return in total
+        transform_batch
+            Batch to condition on.
+            If transform_batch is:
+            - None, then real observed batch is used.
+            - int, then batch transform_batch is used.
         region_list
-            Return accessibility estimates for this subset of regions. if `None`, all regions are used.
-            This can save memory when dealing with large datasets.
-        use_z_mean
-            If True (default), use the distribution mean. Otherwise, sample from the distribution.
-        threshold
-            If provided, values below the threshold are replaced with 0 and a sparse matrix
-            is returned instead. This is recommended for very large matrices. Must be between 0 and 1.
-        normalize_cells
-            Whether to reintroduce library size factors to scale the normalized probabilities.
-            This makes the estimates closer to the input, but removes the library size correction.
-            False by default.
-        normalize_regions
-            Whether to reintroduce region factors to scale the normalized probabilities. This makes
-            the estimates closer to the input, but removes the region-level bias correction. False by
-            default.
+            Return frequencies of expression for a subset of regions.
+            This can save memory when working with large datasets and few regions are
+            of interest.
+        library_size
+            Scale the fragment frequencies to a common library size.
+            This allows accessibility levels to be interpreted on a common scale of relevant
+            magnitude. If set to `"latent"`, use the latent libary size.
+        n_samples
+            Number of posterior samples to use for estimation.
         batch_size
-            Minibatch size for data loading into model
+            Minibatch size for data loading into model. Defaults to `scvi.settings.batch_size`.
+        return_mean
+            Whether to return the mean of the samples.
         return_numpy
-            If `True` and `threshold=None`, return :class:`~numpy.ndarray`. If `True` and `threshold` is
-            given, return :class:`~scipy.sparse.csr_matrix`. If `False`, return :class:`~pandas.DataFrame`.
-            DataFrame includes regions names as columns.
+            Return a :class:`~numpy.ndarray` instead of a :class:`~pandas.DataFrame`. DataFrame includes
+            gene names as columns. If either `n_samples=1` or `return_mean=True`, defaults to `False`.
+            Otherwise, it defaults to `True`.
+        binarize
+            Whether to return the probability of having a fragment in the given region
+        Returns
+        -------
+        If `n_samples` > 1 and `return_mean` is False, then the shape is `(samples, cells, genes)`.
+        Otherwise, shape is `(cells, genes)`. In this case, return type is :class:`~pandas.DataFrame` unless `return_numpy` is True.
         """
         adata = self._validate_anndata(adata)
         if indices is None:
             indices = np.arange(adata.n_obs)
         if n_samples_overall is not None:
             indices = np.random.choice(indices, n_samples_overall)
-        post = self._make_data_loader(
+        scdl = self._make_data_loader(
             adata=adata, indices=indices, batch_size=batch_size
         )
-        
-        generative_kwargs = dict(use_z_mean=use_z_mean)
-        imputed = self.get_imputet_accessibility(
-                                   post=post,
-                                   get_generative_input_kwargs=dict(),
-                                   generative_kwargs=generative_kwargs,
-                                   bernoulli=bernoulli)
 
-        if return_numpy:
-            return imputed
-        # elif threshold:
-        #     return pd.DataFrame.sparse.from_spmatrix(
-        #         imputed,
-        #         index=adata.obs_names[indices],
-        #         columns=adata.var_names,
-        #     )
+        transform_batch = _get_batch_code_from_category(
+            self.get_anndata_manager(adata, required=True), transform_batch
+        )
+
+        if region_list is None:
+            region_mask = slice(None)
         else:
+            all_regions = adata.var_names
+            region_mask = [True if region in region_list else False for region in all_regions]
+
+        if n_samples > 1 and return_mean is False:
+            if return_numpy is False:
+                warnings.warn(
+                    "return_numpy must be True if n_samples > 1 and return_mean is False, returning np.ndarray"
+                )
+            return_numpy = True
+        if library_size == "latent":
+            generative_output_key = "px_rate"
+            scaling = 1
+        else:
+            generative_output_key = "px_scale"
+            scaling = library_size
+
+        accs = []
+        for tensors in scdl:
+            per_batch_accs = []
+            for batch in transform_batch:
+                generative_kwargs = self._get_transform_batch_gen_kwargs(batch)
+                inference_kwargs = dict(n_samples=n_samples)
+                _, generative_outputs = self.module.forward(
+                    tensors=tensors,
+                    inference_kwargs=inference_kwargs,
+                    generative_kwargs=generative_kwargs,
+                    compute_loss=False,
+                )
+                output = generative_outputs[generative_output_key]
+                output = output[..., region_mask]
+                output *= scaling
+                output = output.cpu().numpy()
+                per_batch_accs.append(output)
+            per_batch_accs = np.stack(
+                per_batch_accs
+            )  # shape is (len(transform_batch) x batch_size x n_var)
+            accs += [per_batch_accs.mean(0)]
+
+        if n_samples > 1:
+            # The -2 axis correspond to cells.
+            accs = np.concatenate(accs, axis=-2)
+        else:
+            accs = np.concatenate(accs, axis=0)
+        if n_samples > 1 and return_mean:
+            accs = accs.mean(0)
+        
+        if binarize:
+            p = 1 - torch.exp(Poisson(torch.from_numpy(accs)).log_prob(torch.Tensor([0])))
+            accs = p.numpy()
+            
+        if return_numpy is None or return_numpy is False:
             return pd.DataFrame(
-                imputed,
+                accs,
+                columns=adata.var_names[region_mask],
                 index=adata.obs_names[indices],
-                columns=adata.var_names,
             )
-    def get_imputet_accessibility(self,
-                                post=None,
-                                get_generative_input_kwargs: dict=None,
-                                generative_kwargs: dict=None,
-                                bernoulli=True):
-        imputed = []
-        for tensors in post:
-            _, generative_outputs = self.module.forward(
-                tensors=tensors,
-                get_generative_input_kwargs=get_generative_input_kwargs,
-                generative_kwargs=generative_kwargs,
-                compute_loss=False,
-            )
-            p = generative_outputs["px_rate"].cpu() 
-            if bernoulli:
-                p = 1 - torch.exp(Poisson(p).log_prob(torch.Tensor([0])))
-            imputed.append(p)
-        imputed = torch.cat(imputed).numpy()
-        return imputed
-    
+        else:
+            return accs
+  
 
     @classmethod
     @setup_anndata_dsp.dedent

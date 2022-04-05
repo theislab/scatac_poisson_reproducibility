@@ -319,6 +319,7 @@ class  PoissonVAE(BaseModuleClass):
             n_cat_list=encoder_cat_list,
             n_hidden=self.n_hidden,
             dropout_rate=self.dropout_rate,
+            activation_fn=torch.nn.LeakyReLU, # to be similar to PeakVI
             inject_covariates=deeply_inject_covariates,
             use_batch_norm=use_batch_norm_encoder,
             use_layer_norm=use_layer_norm_encoder,
