@@ -85,7 +85,6 @@ Initial_sweep:
     #model
     scvi.seed: 0
     setup.model_params.use_layer_norm: "both"
-    setup.model_params.use_observed_lib_size: False
 
     #data
     data.dataset: "neurips" #only testing on Neurips
@@ -104,6 +103,7 @@ Initial_sweep:
     fixed:
       model.model_type: "poissonvi"
       setup.layer: "counts" #using count layer
+      setup.model_params.use_observed_lib_size: False #Using encoded library size
       
   Peakvi:
     fixed:

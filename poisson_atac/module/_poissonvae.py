@@ -315,10 +315,10 @@ class  PoissonVAE(BaseModuleClass):
         self.l_encoder = Encoder(
             n_input_encoder,
             1,
-            n_layers=1,
+            n_layers=self.n_layers_decoder,
             n_cat_list=encoder_cat_list,
             n_hidden=self.n_hidden,
-            dropout_rate=self.dropout_rate,
+            dropout_rate=0, #PeakVI does not use dropout in l encoder
             activation_fn=torch.nn.LeakyReLU, # to be similar to PeakVI
             inject_covariates=deeply_inject_covariates,
             use_batch_norm=use_batch_norm_encoder,
