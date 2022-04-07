@@ -22,7 +22,8 @@ model_type_map = {
     'linear_count': "encoder-decoder, poisson loss, linear",
     'peakvi': "Binary VAE (PeakVI)",
     'scale_binary':'scale_binary', 
-    'gex_binary':'gex_binary' 
+    'gex_binary':'gex_binary',
+    'poissonvi': "Poisson VAE"
 }
 
     

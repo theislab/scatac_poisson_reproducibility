@@ -162,7 +162,7 @@ def plot_proportions(adata, figsize, fontsize, save_path=None, prefix="", lower_
     counts = pd.concat([counts, pd.DataFrame({'reads': 0.0 , 'count':adata.shape[0]*adata.shape[1]-len(adata.layers["counts"].data) }, index=[0])])
     counts["reads"] = counts["reads"].astype(int)
     
-    sns_df = pd.concat([counts[(counts["reads"] <= upper_limit) & (counts["reads"] > lower_limit)], pd.DataFrame({'reads': f">{upper_limit}", "count": counts["count"][counts["reads"]>upper_limit].sum()}, index =[0])])
+    sns_df = pd.concat([counts[(counts["reads"] <= upper_limit) & (counts["reads"] >= lower_limit)], pd.DataFrame({'reads': f">{upper_limit}", "count": counts["count"][counts["reads"]>upper_limit].sum()}, index =[0])])
     sns_df["reads"] = sns_df["reads"].astype(str)
     sns_df = sns_df.sort_values("reads")
     
