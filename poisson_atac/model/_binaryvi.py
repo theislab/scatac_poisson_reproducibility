@@ -387,7 +387,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             return_numpy = True
         if library_size == "latent":
             generative_output_key = "px_rate"
-            scale = 1
+            shift = 1
         else:
             generative_output_key = "px_scale"
             shift = torch.logit(torch.Tensor([library_size/self.summary_stats.n_vars]).cuda(), eps=1e-6)
