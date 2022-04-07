@@ -407,9 +407,8 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
                 output = generative_outputs[generative_output_key]
                 output = output[..., region_mask]
                 if library_size!="latent":
-                    output *= scale
+                    output += shift
                     output = torch.sigmoid(output)
-                    #output = torch.sigmoid(output)
                 output = output.cpu().numpy()
                 per_batch_accs.append(output)
             per_batch_accs = np.stack(
