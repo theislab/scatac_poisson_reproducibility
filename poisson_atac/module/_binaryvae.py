@@ -113,6 +113,7 @@ class DecoderBinaryVI(nn.Module):
             activation_fn=torch.nn.LeakyReLU, # adding this because PeakVi uses Leaky Relu in decoder
         )
 
+        self.n_output = n_output
         #self.region_factor = torch.nn.Parameter(torch.zeros(n_output))
         #TODO: add region factor later to be more easily able to retrieve it
         # mean gamma
@@ -159,7 +160,7 @@ class DecoderBinaryVI(nn.Module):
         px_scale = self.p_scale_decoder(px)
         px_dropout = None #self.px_dropout_decoder(px)
         # Clamp to high value: exp(12) ~ 160000 to avoid nans (computational stability)
-        px_rate = self.p_scale_activation(px_scale + library) # torch.clamp( , max=12)
+        px_rate = torch.exp(library)/self.n_output * self.p_scale_activation(px_scale) # torch.clamp( , max=12)
         px_r = None
         return px_scale, px_r, px_rate, px_dropout
     

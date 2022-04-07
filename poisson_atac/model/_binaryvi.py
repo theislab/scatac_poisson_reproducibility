@@ -387,10 +387,10 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             return_numpy = True
         if library_size == "latent":
             generative_output_key = "px_rate"
-            shift = 1
+            scale = 1
         else:
             generative_output_key = "px_scale"
-            shift = np.log(library_size)
+            scale = library_size
 
         accs = []
         for tensors in scdl:
@@ -407,8 +407,8 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
                 output = generative_outputs[generative_output_key]
                 output = output[..., region_mask]
                 if library_size!="latent":
-                    output += shift
-                    output = torch.sigmoid(output)
+                    output *= (scale/self.summary_stats.n_vars)
+                    #output = torch.sigmoid(output)
                 output = output.cpu().numpy()
                 per_batch_accs.append(output)
             per_batch_accs = np.stack(
