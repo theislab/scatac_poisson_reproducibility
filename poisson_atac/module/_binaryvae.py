@@ -157,10 +157,10 @@ class DecoderBinaryVI(nn.Module):
             parameters for the ZINB distribution of expression
         """
         px = self.p_decoder(z, *cat_list)
-        px_scale = self.p_scale_decoder(px)
+        px_scale = torch.softmax(self.p_scale_decoder(px), dim =-1)
         px_dropout = None #self.px_dropout_decoder(px)
         # Clamp to high value: exp(12) ~ 160000 to avoid nans (computational stability)
-        px_rate = torch.exp(library)/self.n_output * self.p_scale_activation(px_scale) # torch.clamp( , max=12)
+        px_rate = self.p_scale_activation(torch.exp(library) * px_scale) # torch.clamp( , max=12)
         px_r = None
         return px_scale, px_r, px_rate, px_dropout
     
