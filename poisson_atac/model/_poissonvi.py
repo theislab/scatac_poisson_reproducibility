@@ -322,7 +322,7 @@ class PoissonVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
         return_numpy: Optional[bool] = None,
         binarize=True,
     ) -> Union[np.ndarray, pd.DataFrame]:
-        r"""
+        """
         Returns the normalized (decoded) accessibility.
         Parameters
         ----------
