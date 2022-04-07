@@ -116,7 +116,7 @@ class DecoderBinaryVI(nn.Module):
         self.n_output = n_output
         #self.region_factor = torch.nn.Parameter(torch.zeros(n_output))
         #TODO: add region factor later to be more easily able to retrieve it
-        # mean gamma
+        self.n_output = n_output
         self.p_scale_activation = nn.Sigmoid()
         
         self.p_scale_decoder = nn.Sequential(
@@ -160,7 +160,7 @@ class DecoderBinaryVI(nn.Module):
         px_scale = torch.softmax(self.p_scale_decoder(px), dim =-1)
         px_dropout = None #self.px_dropout_decoder(px)
         # Clamp to high value: exp(12) ~ 160000 to avoid nans (computational stability)
-        px_rate = self.p_scale_activation(torch.exp(library) * px_scale) # torch.clamp( , max=12)
+        px_rate = self.p_scale_activation(px_scale + torch.logit(torch.exp(library)/self.n_output, eps=1e-6)) # torch.clamp( , max=12)
         px_r = None
         return px_scale, px_r, px_rate, px_dropout
     

@@ -390,7 +390,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             scale = 1
         else:
             generative_output_key = "px_scale"
-            scale = library_size
+            shift = torch.logit(torch.Tensor([library_size/self.summary_stats.n_vars]).cuda(), eps=1e-6)
 
         accs = []
         for tensors in scdl:
