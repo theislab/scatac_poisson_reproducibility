@@ -13,49 +13,6 @@ from scvi.module.base import BaseModuleClass, LossRecorder, auto_move_data
 from scvi.nn import Encoder, FCLayers, one_hot
 
 
-# class DecoderSCVI(torch.nn.Module):
-#     def __init__(
-#         self,
-#         n_input: int,
-#         n_output: int,
-#         n_hidden=128,
-#         n_layers=2,
-#         n_cat_list: Iterable[int] = None,
-#         use_batch_norm: bool = False,
-#         use_layer_norm: bool = False,
-#         deep_inject_covariates: bool = False,
-#     ):
-#         super().__init__()
-
-#         self.n_output = n_output
-#         # mean gamma
-#         self.factor_regressor = FCLayers(
-#             n_in=n_input,
-#             n_out=n_hidden,
-#             n_hidden=n_hidden,
-#             n_cat_list=n_cat_list,
-#             n_layers=n_layers,
-#             use_activation=True,
-#             activation_fn=torch.nn.LeakyReLU,
-#             use_batch_norm=use_batch_norm,
-#             use_layer_norm=use_layer_norm,
-#             dropout_rate=0,
-#             inject_covariates=deep_inject_covariates
-#         )
-        
-#         self.output = torch.nn.Linear(n_hidden, n_output, bias=False)
-#         self.region_factor = torch.nn.Parameter(torch.zeros(n_output))
-    
-
-#     def forward(
-#         self, z: torch.Tensor, library: torch.Tensor, *cat_list: int):
-#         raw_px_scale = self.output(self.factor_regressor(z, *cat_list))   
-#         px_scale = torch.softmax(raw_px_scale + self.region_factor, dim=-1)
-#         px_rate = torch.exp(library) * px_scale
-#         px_r = None
-#         px_dropout=None
-#         return px_scale, px_r, px_rate, px_dropout
-    
 # Decoder
 class DecoderBinaryVI(nn.Module):
     """
