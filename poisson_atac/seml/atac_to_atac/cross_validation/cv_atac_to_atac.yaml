@@ -65,7 +65,7 @@ slurm:
   sbatch_options_template: GPU
   sbatch_options:
      gres: gpu:1       # num GPUs
-     mem: 30G          # memory
+     mem: 45G          # memory
      cpus-per-task: 4  # num cores
      time: 0-20:01     # max time, D-HH:MM
 
@@ -84,7 +84,6 @@ Initial_sweep:
   fixed:
     #model
     scvi.seed: 0
-    setup.model_params.use_layer_norm: "both"
 
     #data
     data.dataset: "neurips" #only testing on Neurips
@@ -96,107 +95,180 @@ Initial_sweep:
     setup.model_params.n_latent:
       type: range
       min: 10
-      max: 121
+      max: 101
       step: 10
 
   Poissonvi:
     fixed:
       model.model_type: "poissonvi"
       setup.layer: "counts" #using count layer
-      setup.model_params.use_observed_lib_size: False #Using encoded library size
+    grid:
+      setup.model_params.use_observed_lib_size: 
+        type: choice
+        options:
+        - False  #Using encoded library size
+        - True   #Using true library size
       
   Peakvi:
     fixed:
       model.model_type: "peakvi"
       setup.layer: None #using binary data
 
+  Binaryvi:
+      fixed:
+        model.model_type: "binaryvi"
+        setup.layer: None #using binary data
+
+#Intial sweep for finding optimal n_latent
+Initial_sweep_Satpathy:
+  fixed:
+    #model
+    scvi.seed: 0
+
+    #data
+    data.dataset: "hematopoiesis" #only testing on Neurips
+    setup.batch_key: "Group"
+    setup.label_key: "cell_type"
+    data.batch: ['PBMC_Rep1', 'PBMC_Rep2', 'PBMC_Rep3', 'PBMC_Rep4', 'Bone_Marrow_Rep1'] # some batches that are 40% of complete dataset
+
+  grid:
+    setup.model_params.n_latent:
+      type: range
+      min: 10
+      max: 101
+      step: 10
+
+  Poissonvi:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+    grid:
+      setup.model_params.use_observed_lib_size: 
+        type: choice
+        options:
+        - False  #Using encoded library size
+        - True   #Using true library size
+      
+  Peakvi:
+    fixed:
+      model.model_type: "peakvi"
+      setup.layer: None #using binary data
+
+  Binaryvi:
+      fixed:
+        model.model_type: "binaryvi"
+        setup.layer: None #using binary data
 
 
+# Evaluation over multiple train,val, test sets for statistics using all batches
+# Using best n_latent from initial sweep: see notebooks
+Cross_validation_NeurIPS:
+  fixed:
+    #data
+    data.dataset: "neurips" #only testing on Neurips
+    setup.batch_key: "batch"
+    setup.label_key: "cell_type"
+    data.batch: None # all training & test batches
+
+  grid:
+    scvi.seed:
+      type: choice
+      options: 
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+
+  Poissonvi_observed:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.n_latent: 100
+      setup.model_params.use_observed_lib_size: True
+
+  Poissonvi_encoded:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.n_latent: 70
+      setup.model_params.use_observed_lib_size: False
+
+  Peakvi:
+    fixed:
+      model.model_type: "peakvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 80
+
+  Binaryvi_observed:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 60
+      setup.model_params.use_observed_lib_size: True
+
+  Binaryvi_encoded:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 60
+      setup.model_params.use_observed_lib_size: False
 
 
-# Peakvi:
-#   fixed:
-#     setup.model_params.use_layer_norm: "both"
-#     model.model_type: "peakvi"
-#     setup.model_params.n_latent: None
-    
-#   neurips:
-#     fixed:
-#       data.dataset: "neurips"
-#       setup.layer: None
-#       setup.batch_key: "batch"
-#       setup.label_key: "cell_type"
+# Evaluation over multiple train,val, test sets for statistics using all batches
+# Using best n_latent from initial sweep: see notebooks
+Cross_validation_Satpathy:
+  fixed:
+    #data
+    data.dataset: "hematopoiesis"
+    setup.label_key: "cell_type"
+    setup.batch_key: "Group"
 
-#     grid:
-#       data.batch: 
-#         type: choice
-#         options:
-#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-#           - "s1d1"
-#           - "s2d1"
-#           - "s3d10"
-#           - "s1d2"
-#           - "s1d3"
-#           - "s2d4"
-#           - "s2d5"
-#           - "s3d3"
-#           - "s3d6"
-#           - "s3d7"
+  grid:
+    data.batch: 
+     type: choice
+     options:
+      - ['PBMC_Rep1', 'PBMC_Rep2', 'PBMC_Rep3', 'PBMC_Rep4'] # For integration metrics
+      - None
+    scvi.seed:
+      type: choice
+      options: 
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
 
-#   hematopoiesis:
+  Poissonvi_observed:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.n_latent: 100
+      setup.model_params.use_observed_lib_size: True
 
-#     fixed:
-#       data.dataset: "hematopoiesis"
-#       setup.layer: None
-#       setup.label_key: "cell_type"
-#       data.batch: None
-#       setup.batch_key: "Group"
+  Poissonvi_encoded:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.n_latent: 60
+      setup.model_params.use_observed_lib_size: False
 
+  Peakvi:
+    fixed:
+      model.model_type: "peakvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 70
 
-# Count:
+  Binaryvi_observed:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 100
+      setup.model_params.use_observed_lib_size: True
 
-#   fixed:
-#     setup.model_params.use_layer_norm: "both"
-#     model.model_type: "count"
-#     setup.model_params.n_latent: None
-    
-#   neurips:
-#     fixed:
-#       data.dataset: "neurips"
-#       setup.layer: "counts"
-#       setup.batch_key: "batch"
-#       setup.label_key: "cell_type"
-
-#     grid:
-#       data.batch: 
-#         type: choice
-#         options:
-#           - ['s1d1','s1d2','s1d3','s2d1','s2d5','s3d10','s3d3','s3d6','s3d7','s2d4']
-#           - "s1d1"
-#           - "s2d1"
-#           - "s3d10"
-#           - "s1d2"
-#           - "s1d3"
-#           - "s2d4"
-#           - "s2d5"
-#           - "s3d3"
-#           - "s3d6"
-#           - "s3d7"
-
-#   hematopoiesis:
-
-#     fixed:
-#       data.dataset: "hematopoiesis"
-#       setup.layer: "counts" 
-#       setup.label_key: "cell_type"
-#       data.batch: None
-#       setup.batch_key: "Group"
-
-#     scvi.seed:
-#       type: choice
-#       options: 
-#           - 0
-#           - 1
-#           - 2
-#           - 3
-#           - 4
+  Binaryvi_encoded:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 100
+      setup.model_params.use_observed_lib_size: False

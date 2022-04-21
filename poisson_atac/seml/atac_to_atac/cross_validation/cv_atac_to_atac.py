@@ -68,6 +68,8 @@ class ExperimentWrapper:
             self.model = scvi.model.PEAKVI
         elif model_type == "poissonvi":
             self.model = patac.model.PoissonVI
+        elif model_type == "binaryvi":
+            self.model = patac.model.BinaryVI
 
     @ex.capture(prefix="optimization")
     def init_optimizer(self, regularization: dict):
@@ -123,6 +125,8 @@ class ExperimentWrapper:
             kwargs = {"normalize_cells": True, "normalize_regions": True}
         elif self.model_type == "poissonvi":
             kwargs = {"library_size": "latent", "binarize": True}
+        elif self.model_type == "binaryvi":
+            kwargs = {"library_size": "latent"}
         test_cells = evaluate_test_cells(self.model, self.adata, **kwargs)
         
         # Latent space evaluation:
