@@ -1,3 +1,4 @@
 from ._poissonvi import PoissonVI
-from ._gextoatacvi import GEXtoATAC, BinaryGEXtoATAC
+from ._poissongextoatacvi import GEXtoATAC
 from ._binaryvi import BinaryVI
+from ._binarygextoatacvi import BinaryGEXtoATAC
