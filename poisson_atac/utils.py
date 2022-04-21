@@ -15,15 +15,16 @@ matplotlib.rcParams["font.size"] = 16
 #sns.set_context("paper")
 
 model_type_map = {
-    'baseline':"encoder-decoder,poisson loss, baseline", 
-    'count': "Poisson VAE",
-    'cistopic': "cisTopic", 
-    'gex':"encoder-decoder, poisson loss, RNA input" , 
-    'linear_count': "encoder-decoder, poisson loss, linear",
-    'peakvi': "Binary VAE (PeakVI)",
-    'scale_binary':'scale_binary', 
-    'gex_binary':'gex_binary',
-    'poissonvi': "Poisson VAE"
+    'gexTrue':"Poisson encoder-decoder\n(observed library size)" , 
+    'gexFalse':"Poisson encoder-decoder\n(mean observed library size)" , 
+    'gex_binaryTrue':"Binary encoder-decoder\n(observed library size)" , 
+    'gex_binaryFalse':"Binary encoder-decoder\n(mean observed library size)" , 
+    'binaryviTrue': "Binary VAE (obs. ls)",
+    'binaryviFalse': "Binary VAE (enc. ls)",
+    'poissonviTrue': "Poisson VAE (obs. ls)",
+    'poissonviFalse': "Poisson VAE (enc. ls)",
+    'peakvi': "PeakVI",
+    'LS_lab': 'Neurips winner: LS_lab\n(binary)'
 }
 
     
