@@ -1,7 +1,7 @@
 seml:
-  executable: poisson_atac/scripts/neurips_challenge/experiment_runner.py
+  executable: poisson_atac/seml/atac_to_atac/LS_lab/experiment_runner.py
   name: Neurips_challenge
-  output_dir: poisson_atac/scripts/neurips_challenge/logs
+  output_dir: poisson_atac/seml/logs
   project_root_dir: /storage/groups/ml01/code/laura.martens/atac_poisson_study/
   conda_environment: poisson_atac_new
 slurm:
