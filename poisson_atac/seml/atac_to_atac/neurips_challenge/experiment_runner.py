@@ -101,7 +101,7 @@ class ExperimentWrapper:
         self.init_optimizer()
     
     @ex.capture(prefix="training")
-    def run(self, max_epochs, save_path, project_name):
+    def run(self, max_epochs, save_path, project_name, final):
         ## Setup logger
         logger = WandbLogger(project=project_name, name=f"{self.model_type}_{self.dataset}_{self.batch}")
         #train model
@@ -119,37 +119,32 @@ class ExperimentWrapper:
         model_path=os.path.join(save_path, ext)
         self.model.save(dir_path=model_path)   
         
-        #Peak and cell evaluations:
-        if self.model_type == "gex_binary":
-            kwargs = {"normalize_cells": True, "normalize_regions": True}
-        else:
-            kwargs = {}
-        
+        #Peak and cell evaluations with true library size and mean library size:
         if self.model_type == "gex":
             size_factor = self.adata.layers["counts"].sum(axis =1)
-            y_mean = self.model.get_normalized_accessibility(self.adata_test, library = size_factor.mean()) # with mean training size factor
-            y_pred = self.model.get_accessibility_estimates(self.adata_test, return_numpy= True)
+            kwargs_true = {"library_size": "latent", "binarize": True}
+            kwargs_mean = {"library_size": size_factor.mean(), "binarize": True}
+        elif self.model_type == "gex_binary":
+            size_factor = self.adata.X.A.sum(axis =1)
+            kwargs_true = {"library_size": "latent"}
+            kwargs_mean = {"library_size": size_factor.mean()}
+
+        if final:
+            y_mean = self.model.get_accessibility_estimates(self.adata_test, return_numpy=True, **kwargs_mean) # with mean training size factor
+            y_pred = self.model.get_accessibility_estimates(self.adata_test, return_numpy= True, **kwargs_true)
             predictions = {'Model': y_pred, 'Mean': y_mean}
             test_cells = evaluation_table(y_true=self.adata_test.X.A, predictions=predictions, bce=False)
         else:
-            y_pred = self.model.get_accessibility_estimates(self.adata_test, return_numpy= True, **kwargs)
-            predictions = {'Model': y_pred}
-            test_cells = evaluation_table(y_true=self.adata_test.X.A, predictions=predictions, bce=False)
-    
-        
-        # Latent space evaluation:
-        X_emb = self.model.get_latent_representation(self.adata_test)
-        metrics = evaluate_embedding(self.adata_test, X_emb, self.label_key, batch_key=self.batch_key, mode="basic")
-
-        
+            val_indices = self.model.validation_indices
+            y_mean = self.model.get_accessibility_estimates(self.adata, return_numpy=True, indices=val_indices, **kwargs_mean) # with mean training size factor
+            y_pred = self.model.get_accessibility_estimates(self.adata, return_numpy= True, indices=val_indices, **kwargs_true)
+            predictions = {'Model': y_pred, 'Mean': y_mean}
+            test_cells = evaluation_table(y_true=self.adata[val_indices].X.A, predictions=predictions, bce=False)
+            
         results = {
             'test_cells': test_cells,
-            'embedding': metrics,
             'average_precision': test_cells.loc['average_precision', 'Model'],
             'rmse': test_cells.loc['rmse', 'Model'],
-            'bce': test_cells.loc['bce', 'Model'],
-            'nmi': metrics.loc['NMI_cluster/label', 0],
-            'ari': metrics.loc['ARI_cluster/label', 0],
             'model_path': model_path
         }
         return results
