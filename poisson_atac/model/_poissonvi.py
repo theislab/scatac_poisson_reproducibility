@@ -69,16 +69,6 @@ class PoissonVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
         covariates will only be included in the input layer.
     **model_kwargs
         Keyword args for :class:`~scvi.module.PEAKVAE`
-    Examples
-    --------
-    >>> adata = anndata.read_h5ad(path_to_anndata)
-    >>> scvi.model.PEAKVI.setup_anndata(adata, batch_key="batch")
-    >>> vae = scvi.model.PEAKVI(adata)
-    >>> vae.train()
-    Notes
-    -----
-    See further usage examples in the following tutorials:
-    1. :doc:`/user_guide/notebooks/PeakVI`
     """
 
     def __init__(
