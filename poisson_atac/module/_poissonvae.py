@@ -11,52 +11,9 @@ from scvi import REGISTRY_KEYS
 from scvi._compat import Literal
 from scvi.module.base import BaseModuleClass, LossRecorder, auto_move_data
 from scvi.nn import Encoder, FCLayers, one_hot
+from scvi.distributions import NegativeBinomial
 
 
-# class DecoderSCVI(torch.nn.Module):
-#     def __init__(
-#         self,
-#         n_input: int,
-#         n_output: int,
-#         n_hidden=128,
-#         n_layers=2,
-#         n_cat_list: Iterable[int] = None,
-#         use_batch_norm: bool = False,
-#         use_layer_norm: bool = False,
-#         deep_inject_covariates: bool = False,
-#     ):
-#         super().__init__()
-
-#         self.n_output = n_output
-#         # mean gamma
-#         self.factor_regressor = FCLayers(
-#             n_in=n_input,
-#             n_out=n_hidden,
-#             n_hidden=n_hidden,
-#             n_cat_list=n_cat_list,
-#             n_layers=n_layers,
-#             use_activation=True,
-#             activation_fn=torch.nn.LeakyReLU,
-#             use_batch_norm=use_batch_norm,
-#             use_layer_norm=use_layer_norm,
-#             dropout_rate=0,
-#             inject_covariates=deep_inject_covariates
-#         )
-        
-#         self.output = torch.nn.Linear(n_hidden, n_output, bias=False)
-#         self.region_factor = torch.nn.Parameter(torch.zeros(n_output))
-    
-
-#     def forward(
-#         self, z: torch.Tensor, library: torch.Tensor, *cat_list: int):
-#         raw_px_scale = self.output(self.factor_regressor(z, *cat_list))   
-#         px_scale = torch.softmax(raw_px_scale + self.region_factor, dim=-1)
-#         px_rate = torch.exp(library) * px_scale
-#         px_r = None
-#         px_dropout=None
-#         return px_scale, px_r, px_rate, px_dropout
-    
-# Decoder
 class DecoderPoissonVI(nn.Module):
     """
     Decodes data from latent space of ``n_input`` dimensions into ``n_output``dimensions.
@@ -125,10 +82,6 @@ class DecoderPoissonVI(nn.Module):
             px_scale_activation,
         )
 
-
-        # dropout
-        #self.px_dropout_decoder = nn.Linear(n_hidden, n_output)
-
     def forward(
         self,
         z: torch.Tensor,
@@ -136,18 +89,8 @@ class DecoderPoissonVI(nn.Module):
         *cat_list: int,
     ):
         """
-        The forward computation for a single sample.
-         #. Decodes the data from the latent space using the decoder network
-         #. Returns parameters for the ZINB distribution of expression
-         #. If ``dispersion != 'gene-cell'`` then value for that param will be ``None``
         Parameters
         ----------
-        dispersion
-            One of the following
-            * ``'gene'`` - dispersion parameter of NB is constant per gene across cells
-            * ``'gene-batch'`` - dispersion can differ between different batches
-            * ``'gene-label'`` - dispersion can differ between different labels
-            * ``'gene-cell'`` - dispersion can differ for every gene in every cell
         z :
             tensor with shape ``(n_input,)``
         library_size
@@ -161,7 +104,7 @@ class DecoderPoissonVI(nn.Module):
         """
         px = self.px_decoder(z, *cat_list)
         px_scale = self.px_scale_decoder(px)
-        px_dropout = None #self.px_dropout_decoder(px)
+        px_dropout = None 
         # Clamp to high value: exp(12) ~ 160000 to avoid nans (computational stability)
         px_rate = torch.exp(library) * px_scale  # torch.clamp( , max=12)
         px_r = None
@@ -191,10 +134,6 @@ class  PoissonVAE(BaseModuleClass):
         Number of hidden layers used for decoder NN.
     dropout_rate
         Dropout rate for neural networks
-    model_depth
-        Model library size factors or not.
-    region_factors
-        Include region-specific factors in the model
     use_batch_norm
         One of the following
 
@@ -287,7 +226,7 @@ class  PoissonVAE(BaseModuleClass):
             self.register_buffer(
                 "library_log_vars", torch.from_numpy(library_log_vars).float()
             )
-
+            
         use_batch_norm_encoder = use_batch_norm == "encoder" or use_batch_norm == "both"
         use_batch_norm_decoder = use_batch_norm == "decoder" or use_batch_norm == "both"
         use_layer_norm_encoder = use_layer_norm == "encoder" or use_layer_norm == "both"
@@ -482,7 +421,7 @@ class  PoissonVAE(BaseModuleClass):
         )
 
         return dict(
-            px_scale=px_scale, px_r=None, px_rate=px_rate, px_dropout=px_dropout
+            px_scale=px_scale, px_r=px_r, px_rate=px_rate, px_dropout=px_dropout
         )
 
     def loss(
@@ -535,9 +474,7 @@ class  PoissonVAE(BaseModuleClass):
         )
         kl_global = torch.tensor(0.0)
         return LossRecorder(loss, reconst_loss, kl_local, kl_global)
-    
+
     def get_reconstruction_loss(self, x, px_rate, px_r, px_dropout) -> torch.Tensor:
         reconst_loss = -Poisson(px_rate).log_prob(x).sum(dim=-1)
         return reconst_loss
-
-    

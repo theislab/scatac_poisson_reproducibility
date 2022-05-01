@@ -32,6 +32,7 @@ from scvi.utils._docstrings import doc_differential_expression, setup_anndata_ds
 
 from scvi.model.base import ArchesMixin, BaseModelClass, VAEMixin, RNASeqMixin
 from scvi.model.base._utils import _de_core
+from scvi.distributions import NegativeBinomial
 
 from poisson_atac.module import PoissonVAE
 from torch.distributions import Poisson
@@ -56,10 +57,6 @@ class PoissonVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
         Number of hidden layers used for decoder NN.
     dropout_rate
         Dropout rate for neural networks
-    model_depth
-        Model sequencing depth / library size (default: True)
-    region_factors
-        Include region-specific factors in the model (default: True)
     latent_distribution
         One of
         * ``'normal'`` - Normal distribution (Default)
@@ -414,9 +411,8 @@ class PoissonVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
             accs = accs.mean(0)
         
         if binarize:
-            p = 1 - torch.exp(Poisson(torch.from_numpy(accs)).log_prob(torch.Tensor([0])))
+            p = 1 - torch.exp(Poisson(torch.from_numpy(accs)).log_prob(torch.Tensor([0])))     
             accs = p.numpy()
-            
         if return_numpy is None or return_numpy is False:
             return pd.DataFrame(
                 accs,
