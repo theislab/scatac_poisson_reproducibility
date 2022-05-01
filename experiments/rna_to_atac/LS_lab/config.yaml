@@ -1,0 +1,34 @@
+seml:
+  executable: poisson_atac/seml/atac_to_atac/LS_lab/experiment_runner.py
+  name: Neurips_challenge
+  output_dir: poisson_atac/seml/logs
+  project_root_dir: /storage/groups/ml01/code/laura.martens/atac_poisson_study/
+  conda_environment: poisson_atac_new
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 8
+  sbatch_options_template: GPU
+  sbatch_options:
+     gres: gpu:1       # num GPUs
+     mem: 40G          # memory
+     cpus-per-task: 4  # num cores
+     time: 0-10:01     # max time, D-HH:MM
+     nodelist: supergpu07
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  data.data_path: "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data/neurips/phase2-private-data/predict_modality/openproblems_bmmc_multiome_phase2_rna"
+  training.save_path: "/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data/neurips/predictions"
+
+grid:
+  data.data_split:
+    type: range
+    min: 0
+    max: 11
+    step: 1
+
+  model.method:
+    type: choice
+    options:
+      - "LS_lab"
