@@ -38,7 +38,6 @@ def load_hematopoiesis(data_path=data_path, convert_counts=True):
         adata.obs_names_make_unique()
         sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
         adata.layers["counts"] = adata.X.copy()
-        
         if convert_counts:
             reads_to_fragments(adata, layer="counts")
         adata.X = (adata.X > 0).astype(float)
@@ -62,5 +61,7 @@ def load_hematopoiesis(data_path=data_path, convert_counts=True):
                         "Naive-CD4-T2",   "Naive-Treg",   "Memory-CD4-T", "Treg", "Naive-CD8-T1", "Naive-CD8-T2",
                         "Naive-CD8-T3",   "Central-memory-CD8-T", "Effector-memory-CD8-T",    "Gamma delta T"]))
         adata.obs["cell_type"] = adata.obs["Clusters"].map(cluster_names)
+        
+        adata.obs["size_factor"] = adata.layers["counts"].sum(axis =1)
         adata.write(cache_path)
     return adata
