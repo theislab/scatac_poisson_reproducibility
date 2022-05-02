@@ -72,8 +72,8 @@ def mean_variance(
                      save_path=save_path,
                      figsize=figsize
                      )
-    
-    X = np.ceil(adata.layers["counts"].A/2)
+
+    X = np.ceil(X/2)
     df = compute_mean_variance(X)
     
     mean_var_scatter(df, 
