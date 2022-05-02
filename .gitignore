@@ -135,5 +135,8 @@ slurm_outputs/
 logs/
 scripts/
 miscellaneous/
+data/
+processed/
+panels/
 launch.json
 
