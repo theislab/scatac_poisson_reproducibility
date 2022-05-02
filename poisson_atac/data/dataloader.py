@@ -6,9 +6,7 @@ import scipy.io
 import numpy as np
 from ._utils import reads_to_fragments
 
-data_path = '/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data'
-
-def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None, convert_counts=True):
+def load_neurips(data_path, only_train=True, gex=False, batch=None, convert_counts=True):
     path = os.path.join(data_path, 'neurips', 'phase2-private-data/common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2.h5ad')
     adata = ad.read(path)
     
@@ -30,7 +28,7 @@ def load_neurips(data_path=data_path, only_train=True, gex=False, batch=None, co
     return adata
 
 # Cell types from https://satijalab.org/signac/articles/monocle.html
-def load_hematopoiesis(data_path=data_path, convert_counts=True):
+def load_hematopoiesis(data_path, convert_counts=True):
     cache_path = os.path.join(data_path, "GSE129785_scATAC-Hematopoiesis", "GSE129785_scATAC-Hematopoiesis.h5ad")
     cached = os.path.exists(cache_path)
     if cached:
