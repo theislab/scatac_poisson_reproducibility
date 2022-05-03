@@ -32,7 +32,6 @@ from scvi.utils._docstrings import doc_differential_expression, setup_anndata_ds
 
 from scvi.model.base import ArchesMixin, BaseModelClass, VAEMixin, RNASeqMixin
 from scvi.model.base._utils import _de_core
-from scvi.distributions import NegativeBinomial
 
 from poisson_atac.module import PoissonVAE
 from torch.distributions import Poisson
