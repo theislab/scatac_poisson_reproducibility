@@ -11,7 +11,6 @@ from scvi import REGISTRY_KEYS
 from scvi._compat import Literal
 from scvi.module.base import BaseModuleClass, LossRecorder, auto_move_data
 from scvi.nn import Encoder, FCLayers, one_hot
-from scvi.distributions import NegativeBinomial
 
 
 class DecoderPoissonVI(nn.Module):
