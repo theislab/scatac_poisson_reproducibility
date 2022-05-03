@@ -11,12 +11,9 @@ setup(
     install_requires=[
         'anndata',
         'scanpy',
-        'numpy==1.20.*',
-        'pandas',
-        'h5py==3.5.0',
         'jupyterlab',
-        'pysam==0.18.0',
-        'scvi-tools'
+        'scvi-tools',
+	'wandb'
     ],
     version='1.0.0'
 )
