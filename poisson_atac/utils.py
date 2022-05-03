@@ -17,18 +17,12 @@ matplotlib.style.use("seaborn-poster")
 matplotlib.rcParams["font.size"] = 16
 
 model_type_map = {
-    'gexTrue':"Poisson encoder-decoder\n(observed seq. coverage)" , 
-    'gexFalse':"Poisson encoder-decoder\n(mean observed seq. coverage)" , 
-    'gex_binaryTrue':"Binary encoder-decoder\n(observed seq. coverage)" , 
-    'gex_binaryFalse':"Binary encoder-decoder\n(mean observed seq. coverage)" , 
-    'binaryviTrue': "Binary VAE\n(observed seq. coverage)",
-    'binaryviFalse': "Binary VAE\n(encoded seq. coverage)",
-    'poissonviTrue': "Poisson VAE\n(observed seq. coverage)",
-    'poissonviFalse': "Poisson VAE\n(encoded seq. coverage)",
-    'nbviTrue': "Neg. Binomial VAE\n(observed seq. coverage)",
-    'nbviFalse': "Neg. Binomial VAE\n(encoded seq. coverage)",
-    'peakvi': "PeakVI\n(encoded seq. coverage)",
-    'LS_lab': 'Neurips winner: LS_lab\n(binary, no seq. coverage)'
+    'gexTrue':"Poisson\nencoder-decoder" , 
+    'gex_binaryTrue':"Binary\nencoder-decoder" , 
+    'binaryviTrue': "Binary VAE",
+    'poissonviTrue': "Poisson VAE",
+    'peakvi': "PeakVI",
+    'LS_lab': 'Neurips winner\nLS_lab'
 }
 
 def compute_embedding(adata, X_emb):
