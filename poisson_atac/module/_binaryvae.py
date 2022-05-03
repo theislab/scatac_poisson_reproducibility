@@ -91,16 +91,9 @@ class DecoderBinaryVI(nn.Module):
         """
         The forward computation for a single sample.
          #. Decodes the data from the latent space using the decoder network
-         #. Returns parameters for the ZINB distribution of expression
-         #. If ``dispersion != 'gene-cell'`` then value for that param will be ``None``
+         #. Returns parameters for the Bernoulli distribution of accessibility.
         Parameters
         ----------
-        dispersion
-            One of the following
-            * ``'gene'`` - dispersion parameter of NB is constant per gene across cells
-            * ``'gene-batch'`` - dispersion can differ between different batches
-            * ``'gene-label'`` - dispersion can differ between different labels
-            * ``'gene-cell'`` - dispersion can differ for every gene in every cell
         z :
             tensor with shape ``(n_input,)``
         library_size
@@ -122,9 +115,7 @@ class DecoderBinaryVI(nn.Module):
     
 class  BinaryVAE(BaseModuleClass):
     """
-    Variational auto-encoder model for ATAC-seq data.
-
-    This is an implementation of the peakVI model descibed in.
+    Variational auto-encoder model for ATAC-seq binarized data using the observed sequence coverage.
 
     Parameters
     ----------
@@ -144,10 +135,6 @@ class  BinaryVAE(BaseModuleClass):
         Number of hidden layers used for decoder NN.
     dropout_rate
         Dropout rate for neural networks
-    model_depth
-        Model library size factors or not.
-    region_factors
-        Include region-specific factors in the model
     use_batch_norm
         One of the following
 
@@ -164,7 +151,6 @@ class  BinaryVAE(BaseModuleClass):
         * ``'both'`` - use layer normalization in both the encoder and decoder (default)
     latent_distribution
         which latent distribution to use, options are
-
         * ``'normal'`` - Normal distribution (default)
         * ``'ln'`` - Logistic normal distribution (Normal(0, I) transformed by softmax)
     deeply_inject_covariates
@@ -176,7 +162,7 @@ class  BinaryVAE(BaseModuleClass):
         Use size_factor AnnDataField defined by the user as scaling factor in mean of conditional distribution.
         Takes priority over `use_observed_lib_size`.
     use_observed_lib_size
-        Use observed library size for RNA as scaling factor in mean of conditional distribution
+        Use observed sequence coverage of ATAC data as scaling factor in mean of conditional distribution
     library_log_means
         1 x n_batch array of means of the log library sizes. Parameterizes prior on library size if
         not using observed library size.

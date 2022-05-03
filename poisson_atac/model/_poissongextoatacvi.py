@@ -40,11 +40,11 @@ from torch.distributions import Poisson
 
 class GEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
-    Peak Variational Inference [Ashuach21]_
+    RNA-ATAC encoder-decoder model on count data.
     Parameters
     ----------
     adata
-        AnnData object that has been registered via :meth:`~scvi.model.PEAKVI.setup_anndata`.
+        AnnData object that has been registered via :meth:`~poisson_atac.model.GEXtoATAC.setup_anndata`.
     n_hidden
         Number of nodes per hidden layer. If `None`, defaults to square root
         of number of regions.
@@ -69,7 +69,7 @@ class GEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
         Whether to deeply inject covariates into all layers of the decoder. If False (default),
         covariates will only be included in the input layer.
     **model_kwargs
-        Keyword args for :class:`~scvi.module.PEAKVAE`
+        Keyword args for :class:`~poisson_atac.module.GEXTOATACVAE`
     """
 
     def __init__(
@@ -316,7 +316,7 @@ class GEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
         binarize=True,
     ) -> Union[np.ndarray, pd.DataFrame]:
         """
-        Returns the normalized (decoded) accessibility.
+        Returns the decoded accessibility.
         Parameters
         ----------
         adata

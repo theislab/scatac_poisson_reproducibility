@@ -16,14 +16,14 @@ from poisson_atac.module import DecoderPoissonVI
     
 class  GEXTOATACVAE(BaseModuleClass):
     """
-    Variational auto-encoder model for ATAC-seq data.
-
-    This is an implementation of the peakVI model descibed in.
+    Variational auto-encoder model for ATAC-seq COUNT data from matched RNA-seq data.
 
     Parameters
     ----------
     n_input_regions
         Number of input regions.
+    n_input_genes
+        Number of input genes.
     n_batch
         Number of batches, if 0, no batch correction is performed.
     n_hidden
@@ -70,7 +70,7 @@ class  GEXTOATACVAE(BaseModuleClass):
         Use size_factor AnnDataField defined by the user as scaling factor in mean of conditional distribution.
         Takes priority over `use_observed_lib_size`.
     use_observed_lib_size
-        Use observed library size for RNA as scaling factor in mean of conditional distribution
+        Use observed sequence coverage of the ATAC data as scaling factor in mean of conditional distribution.
     library_log_means
         1 x n_batch array of means of the log library sizes. Parameterizes prior on library size if
         not using observed library size.

@@ -111,9 +111,7 @@ class DecoderPoissonVI(nn.Module):
     
 class  PoissonVAE(BaseModuleClass):
     """
-    Variational auto-encoder model for ATAC-seq data.
-
-    This is an implementation of the peakVI model descibed in.
+    Variational auto-encoder model for ATAC-seq COUNT data.
 
     Parameters
     ----------
@@ -161,7 +159,7 @@ class  PoissonVAE(BaseModuleClass):
         Use size_factor AnnDataField defined by the user as scaling factor in mean of conditional distribution.
         Takes priority over `use_observed_lib_size`.
     use_observed_lib_size
-        Use observed library size for RNA as scaling factor in mean of conditional distribution
+        Use observed sequence coverage of the ATAC data as scaling factor in mean of conditional distribution
     library_log_means
         1 x n_batch array of means of the log library sizes. Parameterizes prior on library size if
         not using observed library size.

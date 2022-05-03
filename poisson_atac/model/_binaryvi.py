@@ -39,11 +39,11 @@ from torch.distributions import Poisson
 
 class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
-    Peak Variational Inference [Ashuach21]_
+    Variational inference on peaks using binarized data and observed sequence coverage.
     Parameters
     ----------
     adata
-        AnnData object that has been registered via :meth:`~scvi.model.PEAKVI.setup_anndata`.
+        AnnData object that has been registered via :meth:`~poisson_atac.model.BinaryVI.setup_anndata`.
     n_hidden
         Number of nodes per hidden layer. If `None`, defaults to square root
         of number of regions.
@@ -56,10 +56,6 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
         Number of hidden layers used for decoder NN.
     dropout_rate
         Dropout rate for neural networks
-    model_depth
-        Model sequencing depth / library size (default: True)
-    region_factors
-        Include region-specific factors in the model (default: True)
     latent_distribution
         One of
         * ``'normal'`` - Normal distribution (Default)
@@ -68,17 +64,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
         Whether to deeply inject covariates into all layers of the decoder. If False (default),
         covariates will only be included in the input layer.
     **model_kwargs
-        Keyword args for :class:`~scvi.module.PEAKVAE`
-    Examples
-    --------
-    >>> adata = anndata.read_h5ad(path_to_anndata)
-    >>> scvi.model.PEAKVI.setup_anndata(adata, batch_key="batch")
-    >>> vae = scvi.model.PEAKVI(adata)
-    >>> vae.train()
-    Notes
-    -----
-    See further usage examples in the following tutorials:
-    1. :doc:`/user_guide/notebooks/PeakVI`
+        Keyword args for :class:`~poisson_atac.module.BinaryVAE`
     """
 
     def __init__(
@@ -139,7 +125,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
         )
         
         self._model_summary_string = (
-            "PoissonVI Model with params: \nn_hidden: {}, n_latent: {}, n_layers_encoder: {}, "
+            "BinaryVI Model with params: \nn_hidden: {}, n_latent: {}, n_layers_encoder: {}, "
             "n_layers_decoder: {} , dropout_rate: {}, latent_distribution: {}, deep injection: {}, "
             "encode_covariates: {}"
         ).format(
@@ -322,7 +308,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
         return_numpy: Optional[bool] = None
     ) -> Union[np.ndarray, pd.DataFrame]:
         """
-        Returns the normalized (decoded) accessibility.
+        Returns the decoded accessibility.
         Parameters
         ----------
         adata
@@ -336,7 +322,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             - None, then real observed batch is used.
             - int, then batch transform_batch is used.
         region_list
-            Return frequencies of expression for a subset of regions.
+            Return probability of accessibiilty for a subset of regions.
             This can save memory when working with large datasets and few regions are
             of interest.
         library_size
@@ -353,8 +339,6 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             Return a :class:`~numpy.ndarray` instead of a :class:`~pandas.DataFrame`. DataFrame includes
             gene names as columns. If either `n_samples=1` or `return_mean=True`, defaults to `False`.
             Otherwise, it defaults to `True`.
-        binarize
-            Whether to return the probability of having a fragment in the given region
         Returns
         -------
         If `n_samples` > 1 and `return_mean` is False, then the shape is `(samples, cells, genes)`.

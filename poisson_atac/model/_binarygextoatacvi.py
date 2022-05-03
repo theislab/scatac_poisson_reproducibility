@@ -40,11 +40,11 @@ from torch.distributions import Poisson
 
 class BinaryGEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
-    Peak Variational Inference [Ashuach21]_
+    RNA-ATAC encoder-decoder model on binarized data.
     Parameters
     ----------
     adata
-        AnnData object that has been registered via :meth:`~scvi.model.PEAKVI.setup_anndata`.
+        AnnData object that has been registered via :meth:`~poisson_atac.model.BinaryGEXtoATAC.setup_anndata`.
     n_hidden
         Number of nodes per hidden layer. If `None`, defaults to square root
         of number of regions.
@@ -57,10 +57,6 @@ class BinaryGEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMi
         Number of hidden layers used for decoder NN.
     dropout_rate
         Dropout rate for neural networks
-    model_depth
-        Model sequencing depth / library size (default: True)
-    region_factors
-        Include region-specific factors in the model (default: True)
     latent_distribution
         One of
         * ``'normal'`` - Normal distribution (Default)
@@ -69,7 +65,7 @@ class BinaryGEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMi
         Whether to deeply inject covariates into all layers of the decoder. If False (default),
         covariates will only be included in the input layer.
     **model_kwargs
-        Keyword args for :class:`~scvi.module.PEAKVAE`
+        Keyword args for :class:`~poisson_atac.module.BinaryGEXTOATACVAE`
     """
 
     def __init__(
@@ -315,7 +311,7 @@ class BinaryGEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMi
         return_numpy: Optional[bool] = None
     ) -> Union[np.ndarray, pd.DataFrame]:
         """
-        Returns the normalized (decoded) accessibility.
+        Returns the decoded accessibility.
         Parameters
         ----------
         adata
@@ -346,8 +342,6 @@ class BinaryGEXtoATAC(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMi
             Return a :class:`~numpy.ndarray` instead of a :class:`~pandas.DataFrame`. DataFrame includes
             gene names as columns. If either `n_samples=1` or `return_mean=True`, defaults to `False`.
             Otherwise, it defaults to `True`.
-        binarize
-            Whether to return the probability of having a fragment in the given region
         Returns
         -------
         If `n_samples` > 1 and `return_mean` is False, then the shape is `(samples, cells, genes)`.
