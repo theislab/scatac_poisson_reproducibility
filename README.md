@@ -24,9 +24,7 @@ def load_config(seml_collection, model_hash):
     with open(file_path) as f:
         file_data = json.load(f)
     
-    for config in file_data:
-        if config['config_hash']==model_hash:
-            config = config['config']
+    config = pd.json_normalize(file_data, sep='.')
     return config
 ```
 The trained models will also soon be provided.
