@@ -13,7 +13,8 @@ setup(
         'scanpy',
         'jupyterlab',
         'scvi-tools',
-	'wandb'
+	    'wandb',
+        'seml'
     ],
     version='1.0.0'
 )
