@@ -22,7 +22,10 @@ model_type_map = {
     'binaryviTrue': "Binary VAE",
     'poissonviTrue': "Poisson VAE",
     'peakvi': "PeakVI",
-    'LS_lab': 'Neurips winner\nLS_lab'
+    'LS_lab': 'Neurips winner\nLS_lab',
+    'cistopic': 'cisTopic',
+    'scale': 'SCALE',
+    'signac': 'Signac'
 }
 
 def compute_embedding(adata, X_emb):
@@ -212,15 +215,17 @@ def get_model_path(seml_collection, model_hash):
     )
     return results["result.model_path"].values[0]
     
-def load_experiment(seml_collection, model_hash, get_experiment_fn):
+def load_experiment(seml_collection, model_hash, get_experiment_fn, load_model=True):
     config = load_config(seml_collection, model_hash)
     ex = get_experiment_fn()
     ex.init_dataset(**config['data'])
     ex.init_model(**config['model'])
     ex.setup_adata(**config['setup'])
     
-    model = ex.model.load(get_model_path(seml_collection, model_hash), adata=ex.adata)
-    
+    if load_model:
+        model = ex.model.load(get_model_path(seml_collection, model_hash), adata=ex.adata)
+    else:
+        model=None
     return ex, model, config
 
     
