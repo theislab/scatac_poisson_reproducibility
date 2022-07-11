@@ -6,6 +6,26 @@ import scipy.io
 import numpy as np
 from ._utils import reads_to_fragments
 
+def load_trapnell(convert_counts=True):
+    data_path = '/lustre/groups/ml01/workspace/laura.martens/data/trapnell_sciATAC_fetal_tissue'
+    cache_path = os.path.join(data_path, "all_tissues.h5ad")
+    cached = os.path.exists(cache_path)
+    if cached:
+        adata = ad.read(cache_path)
+        adata.obs_names_make_unique()
+        sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
+        adata.layers["counts"] = adata.X.copy()
+        if convert_counts:
+            reads_to_fragments(adata, layer="counts")
+        adata.X = (adata.X > 0).astype(float)
+    else:
+        files = pd.Series(os.listdir(data_path, ))
+        files = files[files.str.contains('.h5ad')]
+        adatas = [ad.read(os.path.join(data_path, file)) for file in files]
+        adata = ad.concat(adatas)
+        adata.write(cache_path)
+    return adata
+    
 def load_neurips(data_path, only_train=True, gex=False, batch=None, convert_counts=True, multiome=False):
     path = os.path.join(data_path, 'neurips', 'phase2-private-data/common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2.h5ad')
     adata = ad.read(path)
@@ -69,3 +89,27 @@ def load_hematopoiesis(data_path, convert_counts=True):
         adata.obs["size_factor"] = adata.layers["counts"].sum(axis =1)
         adata.write(cache_path)
     return adata
+
+def save_for_seurat(adata, outdir, sep=[('-', ':')]):
+    import scipy.io 
+    #barcodes
+    barcodes = pd.DataFrame(adata.obs_names, columns = ['barcodes'])
+    #peaks
+    peaks = pd.DataFrame(adata.var_names, columns = ['peaks'])
+    for replacement in sep:
+        peaks.loc[:, 'peaks'] = peaks.loc[:, 'peaks'].str.replace(replacement[0], replacement[1], 1)
+    #matrix
+    matrix = adata.X
+    counts = adata.layers['counts']
+    
+    #save data
+    print("Writing barcodes")
+    barcodes.to_csv(os.path.join(outdir, 'barcodes.csv'), index=False)
+    print("Writing peaks")
+    peaks.to_csv(os.path.join(outdir, 'peaks.csv'), index=False)
+    
+    print("Writing binary matrix")
+    #scipy.io.mmwrite(os.path.join(outdir, 'matrix.mtx'), matrix)
+    print("Writing count matrix")
+    scipy.io.mmwrite(os.path.join(outdir, 'counts.mtx'), counts)
+    print("Done!")
