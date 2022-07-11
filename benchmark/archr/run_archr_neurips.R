@@ -5,11 +5,11 @@ library(parallel)
 setwd('/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/benchmark/neurips/archr/')
 addArchRGenome("hg38")
 
-inputFiles <- "/storage/groups/ml01/datasets/projects/20220323_neurips21_bmmc_christopher.lance/multiome/aggr_donors/atac_fragments.tsv.gz"
-
+samples = c('s1d1','s1d2','s1d3','s2d1','s2d4','s2d5','s3d1','s3d10','s3d3','s3d6','s3d7','s4d1','s4d8','s4d9')
+inputFiles <- sapply(samples, function(x){paste0('/storage/groups/ml01/datasets/projects/20220323_neurips21_bmmc_christopher.lance/multiome/', x, '/cellranger_out/atac_fragments.tsv.gz')})
 ArrowFiles <- createArrowFiles(
   inputFiles = inputFiles,
-  sampleNames = 'neurips',
+  sampleNames = samples,
   filterTSS = 2, #Dont set this too high because you can always increase later
   filterFrags = 500, 
   addTileMat = TRUE,
