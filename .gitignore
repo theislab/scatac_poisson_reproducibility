@@ -139,4 +139,5 @@ notebooks/data/
 processed/
 panels/
 launch.json
+*.out
 
