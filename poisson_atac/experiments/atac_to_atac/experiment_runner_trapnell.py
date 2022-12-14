@@ -4,12 +4,13 @@ import seml
 import os
 import scvi
 import poisson_atac as patac
-from poisson_atac.utils import evaluate_test_cells, evaluate_embedding, evaluate_counts
+from poisson_atac.utils import evaluate_test_cells, evaluate_embedding, setup_prediction_dict, evaluation_table
 
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 import uuid
 import pandas as pd
+import numpy as np
 
 ex = Experiment()
 seml.setup_logger(ex)
@@ -55,7 +56,7 @@ class ExperimentWrapper:
             self.adata = patac.data.load_hematopoiesis()
         elif dataset == "aerts":
             self.adata = patac.data.load_aerts()
-        elif dataset == "trapnell":
+        elif dataset == "trapnell_old":
             self.adata = patac.data.load_trapnell()
         
         self.adata = self.adata.copy() 
@@ -116,7 +117,6 @@ class ExperimentWrapper:
         # save model
         ext = '{}_{}'.format(project_name, uuid.uuid1())
         model_path=os.path.join(save_path, ext)
-        print(model_path)
         self.model.save(dir_path=model_path)   
         
         #Peak and cell evaluations:
@@ -126,39 +126,42 @@ class ExperimentWrapper:
             kwargs = {"library_size": "latent", "binarize": True}
         elif self.model_type == "binaryvi":
             kwargs = {"library_size": "latent"}
-        test_cells = evaluate_test_cells(self.model, self.adata, **kwargs)
+            
+        #need to split it into chunks for memory
+        print("Evaluate test cells")
+        cell_idx = self.model.test_indices
+        test_cells_all = [evaluate_test_cells(self.model, self.adata, cell_idx=idx, **kwargs) for idx in np.array_split(cell_idx, 10)]
+        test_cells = pd.concat(test_cells_all, axis=1)
+        
         
         # Latent space evaluation
-        if self.dataset != 'trapnell':
-            X_emb = self.model.get_latent_representation(self.adata)
-            # We evaluate integration metrics when we have more than one batch
-            if (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" in self.adata.obs.columns):
-                mode = "extended"
-            elif (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" not in self.adata.obs.columns):
-                mode = "fast"
-            else:
-                mode="basic"
-                
-            metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
-        else:
-            metrics = pd.DataFrame([0, 0], index=['NMI_cluster/label', 'ARI_cluster/label'], columns = [0])
         
-        if self.model_type == "poissonvi":
-            kwargs = {"library_size": "latent", "binarize": False}
-            test_cells_counts = evaluate_counts(self.model, self.adata, **kwargs)
+        # We evaluate integration metrics when we have more than one batch
+        if (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" in self.adata.obs.columns):
+            mode = "extended"
+        elif (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" not in self.adata.obs.columns):
+            mode = "fast"
         else:
-            test_cells_counts = None
+            mode="basic"
+        
+        metrics = []  
+        for idx in np.array_split(np.arange(self.adata.n_obs), 10):
+            X_emb = self.model.get_latent_representation(self.adata, indices=idx)     
+            metric = evaluate_embedding(self.adata[idx], X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
+            metrics.append(metric)
+        
+        metrics = pd.concat(metrics, axis=1)
             
             
         results = {
             'test_cells': test_cells,
-            'test_cells_counts': test_cells_counts,
+            'test_cells_counts': None,
             'embedding': metrics,
-            'average_precision': test_cells.loc['average_precision', 'Model'],
-            'rmse': test_cells.loc['rmse', 'Model'],
-            'bce': test_cells.loc['bce', 'Model'],
-            'nmi': metrics.loc['NMI_cluster/label', 0],
-            'ari': metrics.loc['ARI_cluster/label', 0],
+            'average_precision': test_cells.loc['average_precision'].mean(),
+            'rmse': test_cells.loc['rmse'].mean(),
+            'bce': test_cells.loc['bce'].mean(),
+            'nmi': metrics.loc['NMI_cluster/label'].mean(),
+            'ari': metrics.loc['ARI_cluster/label'].mean(),
             'model_path': model_path
         }
         return results

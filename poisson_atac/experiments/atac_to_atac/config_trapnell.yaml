@@ -1,0 +1,109 @@
+# Experiment configuration file.
+
+seml:
+  executable: poisson_atac/experiments/atac_to_atac/experiment_runner_trapnell.py
+  name: ATAC_ATAC_prediction
+  output_dir: poisson_atac/experiments/atac_to_atac/logs
+  project_root_dir: /lustre/groups/ml01/code/laura.martens/scatac_poisson_private/
+  conda_environment: poisson_atac_new
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  sbatch_options_template: GPU
+  sbatch_options:
+     gres: gpu:1       # num GPUs
+     mem: 80G          # memory
+     cpus-per-task: 5  # num cores
+     time: 2-00:00    # max time, D-HH:MM
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  training.max_epochs: 500
+  training.save_path: "/lustre/groups/ml01/workspace/laura.martens/atac_poisson_data/models/seml"
+  training.project_name: "atac_to_atac"
+  optimization.regularization:
+    weight_decay: 1e-3
+    learning_rate: 1e-4
+
+Initial_sweep_trapnell:
+  fixed:
+    #model
+    scvi.seed: 0
+
+    #data
+    data.dataset: "trapnell" #only testing on Neurips
+    setup.batch_key: "sample_name"
+    setup.label_key: "cell_type"
+    data.batch: ['sample_60_thymus', 'sample_46_liver', 'sample_1_adrenal',
+                  'sample_20_kidney', 'sample_2_thymus', 'sample_28_intestine',
+                  'sample_15_placenta', 'sample_13_placenta',
+                  'sample_12_heart', 'sample_9_liver', 'sample_32_heart',
+                  'sample_16_adrenal', 'sample_7_liver', 'sample_10_muscle',
+                  'sample_33_lung', 'sample_66_brain', 'sample_44_lung',
+                  'sample_26_placenta', 'sample_8_lung', 'sample_14_heart',
+                  'sample_4_lung', 'sample_62_stomach', 'sample_61_pancreas',
+                  'sample_22_kidney', 'sample_42_heart']
+
+  grid:
+    setup.model_params.n_latent:
+      type: range
+      min: 10
+      max: 101
+      step: 10
+
+  Poissonvi:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.use_observed_lib_size: False
+      
+  Peakvi:
+    fixed:
+      model.model_type: "peakvi"
+      setup.layer: None #using binary data
+
+  Binaryvi:
+      fixed:
+        model.model_type: "binaryvi"
+        setup.layer: None #using binary data
+        setup.model_params.use_observed_lib_size: False
+
+CV_trapnell:
+  fixed:
+
+    #data
+    data.dataset: "trapnell" #only testing on Neurips
+    setup.batch_key: "sample_name"
+    setup.label_key: "cell_type"
+    data.batch: None
+
+  grid:
+    scvi.seed:
+      type: choice
+      options: 
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+
+  Poissonvi:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.n_latent: 30
+      setup.model_params.use_observed_lib_size: False
+      
+  Peakvi:
+    fixed:
+      model.model_type: "peakvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 100
+
+  Binaryvi:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 50
+      setup.model_params.use_observed_lib_size: False
