@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 from anndata import AnnData
 from scipy.sparse import csr_matrix, vstack
+import scipy.special
 
 from scvi._compat import Literal
 from scvi._constants import REGISTRY_KEYS
@@ -24,6 +25,7 @@ from scvi.data.fields import (
 from scvi.model._utils import (
     _get_batch_code_from_category,
     scatac_raw_counts_properties,
+    scrna_raw_counts_properties
 )
 from scvi.model._utils import _init_library_size
 from scvi.model.base import UnsupervisedTrainingMixin
@@ -305,7 +307,8 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
         n_samples_overall: int = None,
         batch_size: Optional[int] = None,
         return_mean: bool = True,
-        return_numpy: Optional[bool] = None
+        return_numpy: Optional[bool] = None,
+        logit=False,
     ) -> Union[np.ndarray, pd.DataFrame]:
         """
         Returns the decoded accessibility.
@@ -371,10 +374,13 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             return_numpy = True
         if library_size == "latent":
             generative_output_key = "px_rate"
-            shift = 1
+            shift = 0
         else:
             generative_output_key = "px_scale"
-            shift = torch.logit(torch.Tensor([library_size/self.summary_stats.n_vars]).cuda(), eps=1e-6)
+            if library_size > 0:
+                shift = scipy.special.logit(library_size/self.summary_stats.n_vars)
+            else: 
+                shift = 0
 
         accs = []
         for tensors in scdl:
@@ -392,7 +398,8 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
                 output = output[..., region_mask]
                 if library_size!="latent":
                     output += shift
-                    output = torch.sigmoid(output)
+                    if not logit:
+                        output = torch.sigmoid(output)
                 output = output.cpu().numpy()
                 per_batch_accs.append(output)
             per_batch_accs = np.stack(
@@ -416,8 +423,107 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             )
         else:
             return accs
-  
 
+    def differential_accessibility(
+        self,
+        adata: Optional[AnnData] = None,
+        groupby: Optional[str] = None,
+        group1: Optional[Iterable[str]] = None,
+        group2: Optional[str] = None,
+        idx1: Optional[Union[Sequence[int], Sequence[bool], str]] = None,
+        idx2: Optional[Union[Sequence[int], Sequence[bool], str]] = None,
+        mode: Literal["vanilla", "change"] = "change",
+        delta: float = 0.05,
+        batch_size: Optional[int] = None,
+        all_stats: bool = True,
+        batch_correction: bool = False,
+        batchid1: Optional[Iterable[str]] = None,
+        batchid2: Optional[Iterable[str]] = None,
+        fdr_target: float = 0.05,
+        silent: bool = False,
+        two_sided: bool = True,
+        library_size = 0,
+        **kwargs,
+    ) -> pd.DataFrame:
+        r"""\
+        A unified method for differential accessibility analysis.
+        Implements `"vanilla"` DE :cite:p:`Lopez18`. and `"change"` mode DE :cite:p:`Boyeau19`.
+        Parameters
+        ----------
+        {doc_differential_expression}
+        two_sided
+            Whether to perform a two-sided test, or a one-sided test.
+        **kwargs
+            Keyword args for :meth:`scvi.model.base.DifferentialComputation.get_bayes_factors`
+        Returns
+        -------
+        Differential accessibility DataFrame with the following columns:
+        prob_da
+            the probability of the region being differentially accessible
+        is_da_fdr
+            whether the region passes a multiple hypothesis correction procedure with the target_fdr
+            threshold
+        bayes_factor
+            Bayes Factor indicating the level of significance of the analysis
+        effect_size
+            the effect size, computed as (accessibility in population 2) - (accessibility in population 1)
+        emp_effect
+            the empirical effect, based on observed detection rates instead of the estimated accessibility
+            scores from the PeakVI model
+        est_prob1
+            the estimated probability of accessibility in population 1
+        est_prob2
+            the estimated probability of accessibility in population 2
+        emp_prob1
+            the empirical (observed) probability of accessibility in population 1
+        emp_prob2
+            the empirical (observed) probability of accessibility in population 2
+        """
+        adata = self._validate_anndata(adata)
+        col_names = adata.var_names
+        
+        #use mean library size
+        model_fn = partial(
+            self.get_accessibility_estimates, return_mean=False, batch_size=batch_size, library_size=library_size, logit=True
+        )
+
+        # TODO check if change_fn in kwargs and raise error if so
+        def change_fn(a, b):
+            return a - b
+        
+        if two_sided:
+            def m1_domain_fn(samples):
+                return np.abs(samples) >= delta
+
+        else:
+            def m1_domain_fn(samples):
+                return samples >= delta
+
+        result = _de_core(
+            adata_manager=self.get_anndata_manager(adata, required=True),
+            model_fn=model_fn,
+            groupby=groupby,
+            group1=group1,
+            group2=group2,
+            idx1=idx1,
+            idx2=idx2,
+            all_stats=all_stats,
+            all_stats_fn=scatac_raw_counts_properties,
+            col_names=col_names,
+            mode=mode,
+            batchid1=batchid1,
+            batchid2=batchid2,
+            delta=delta,
+            batch_correction=batch_correction,
+            fdr=fdr_target,
+            change_fn=change_fn,
+            m1_domain_fn=m1_domain_fn,
+            silent=silent,
+            **kwargs,
+        )
+
+        return result
+    
     @classmethod
     @setup_anndata_dsp.dedent
     def setup_anndata(

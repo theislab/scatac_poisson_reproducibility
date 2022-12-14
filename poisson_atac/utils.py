@@ -8,22 +8,41 @@ import torch
 import scib
 import sklearn
 import pandas as pd
+import numpy as np
 
 
 
-matplotlib.style.use("seaborn-colorblind")
+#matplotlib.style.use("seaborn-colorblind")
 sns.set_style("whitegrid")
 matplotlib.style.use("seaborn-poster")
 matplotlib.rcParams["font.size"] = 16
 
+
 model_type_map = {
+    'gex':"Poisson\nencoder-decoder" , 
+    'gex_binary':"Binary\nencoder-decoder" , 
+    'binaryvi': "Binary VAE",
+    'poissonvi': "Poisson VAE",
+    'peakvi': "PeakVI",
+    'LS_lab': 'NeurIPS winner\nLS_lab',
+    'cistopic': 'cisTopic',
+    'cistopic_harmony': 'cisTopic (Harmony)',
+    'scale': 'SCALE',
+    'signac': 'Signac',
+    'signac_harmony': 'Signac (Harmony)',
     'gexTrue':"Poisson\nencoder-decoder" , 
     'gex_binaryTrue':"Binary\nencoder-decoder" , 
     'binaryviTrue': "Binary VAE",
-    'poissonviTrue': "Poisson VAE",
-    'peakvi': "PeakVI",
-    'LS_lab': 'Neurips winner\nLS_lab'
+    'poissonviTrue': "Poisson VAE"
 }
+
+dataset_map_simple = {
+    'neurips': '10x Human NeurIPS', 
+    'hematopoiesis': '10x Human Satpathy', 
+    'satpathy': '10x Human Satpathy', 
+    'aerts': '10x Fly', 
+    'trapnell_old': 'sci-ATAC-seq3 Human'
+              }
 
 def compute_embedding(adata, X_emb):
             
@@ -52,7 +71,7 @@ def evaluate_test_cells(model, adata, cell_idx=None, **kwargs):
     adata
         adata file with chrom_idx for test_chrom
     """
-    if not cell_idx:
+    if not isinstance(cell_idx, np.ndarray):
         print("Using test set of model")
         cell_idx = model.test_indices
     y_true = adata[cell_idx].X.A
@@ -210,17 +229,32 @@ def get_model_path(seml_collection, model_hash):
         states=["COMPLETED"],
         filter_dict={"config_hash": model_hash},
     )
-    return results["result.model_path"].values[0]
+    path = results["result.model_path"].values[0]
+    path = path.replace('storage', 'lustre') #adapt to cluster changes
+    return path
     
-def load_experiment(seml_collection, model_hash, get_experiment_fn):
+def load_experiment(seml_collection, model_hash, get_experiment_fn, load_model=True):
     config = load_config(seml_collection, model_hash)
     ex = get_experiment_fn()
     ex.init_dataset(**config['data'])
     ex.init_model(**config['model'])
     ex.setup_adata(**config['setup'])
     
-    model = ex.model.load(get_model_path(seml_collection, model_hash), adata=ex.adata)
-    
+    if load_model:
+        model = ex.model.load(get_model_path(seml_collection, model_hash), adata=ex.adata)
+    else:
+        model=None
     return ex, model, config
+
+def load_data(dataset, model, best, get_experiment, seml_database):
+     model_hash=best.loc[(dataset_map_simple[dataset], model_type_map[model]), "config_hash"]
+     ex, model, config = load_experiment(seml_database, model_hash, get_experiment)
+    
+     X_emb = model.get_latent_representation(ex.adata)
+     compute_embedding(ex.adata, X_emb)
+
+def plot_umap(adata, model, dataset, color_list=['cell_type', 'batch']):
+    for color in color_list:
+        sc.pl.umap(adata, color=color, save=f'{dataset}_{model}_{color}.png')
 
     

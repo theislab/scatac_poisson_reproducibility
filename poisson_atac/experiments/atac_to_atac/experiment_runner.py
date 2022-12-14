@@ -9,6 +9,7 @@ from poisson_atac.utils import evaluate_test_cells, evaluate_embedding, evaluate
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 import uuid
+import pandas as pd
 
 ex = Experiment()
 seml.setup_logger(ex)
@@ -52,7 +53,12 @@ class ExperimentWrapper:
             self.adata = patac.data.load_neurips(batch=batch, only_train=False)
         elif dataset == "hematopoiesis":
             self.adata = patac.data.load_hematopoiesis()
-            
+        elif dataset == "aerts":
+            self.adata = patac.data.load_aerts()
+        elif dataset == "trapnell":
+            self.adata = patac.data.load_trapnell()
+        
+        self.adata = self.adata.copy() 
 
     @ex.capture(prefix="model")
     def init_model(self, model_type: str):
@@ -110,6 +116,7 @@ class ExperimentWrapper:
         # save model
         ext = '{}_{}'.format(project_name, uuid.uuid1())
         model_path=os.path.join(save_path, ext)
+        print(model_path)
         self.model.save(dir_path=model_path)   
         
         #Peak and cell evaluations:
@@ -121,17 +128,20 @@ class ExperimentWrapper:
             kwargs = {"library_size": "latent"}
         test_cells = evaluate_test_cells(self.model, self.adata, **kwargs)
         
-        # Latent space evaluation:
-        X_emb = self.model.get_latent_representation(self.adata)
-        # We evaluate integration metrics when we have more than one batch
-        if (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" in self.adata.obs.columns):
-            mode = "extended"
-        elif (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" not in self.adata.obs.columns):
-            mode = "fast"
+        # Latent space evaluation
+        if self.dataset != 'trapnell':
+            X_emb = self.model.get_latent_representation(self.adata)
+            # We evaluate integration metrics when we have more than one batch
+            if (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" in self.adata.obs.columns):
+                mode = "extended"
+            elif (self.model.summary_stats.n_batch > 1) and ("pseudotime_order_ATAC" not in self.adata.obs.columns):
+                mode = "fast"
+            else:
+                mode="basic"
+                
+            metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
         else:
-            mode="basic"
-            
-        metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
+            metrics = pd.DataFrame([0, 0], index=['NMI_cluster/label', 'ARI_cluster/label'], columns = [0])
         
         if self.model_type == "poissonvi":
             kwargs = {"library_size": "latent", "binarize": False}
