@@ -24,6 +24,7 @@ from scvi.data.fields import (
 from scvi.model._utils import (
     _get_batch_code_from_category,
     scatac_raw_counts_properties,
+    scrna_raw_counts_properties
 )
 from scvi.model._utils import _init_library_size
 from scvi.model.base import UnsupervisedTrainingMixin
@@ -420,8 +421,83 @@ class PoissonVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, B
             )
         else:
             return accs
-  
 
+    def differential_accessibility(
+        self,
+        adata: Optional[AnnData] = None,
+        groupby: Optional[str] = None,
+        group1: Optional[Iterable[str]] = None,
+        group2: Optional[str] = None,
+        idx1: Optional[Union[Sequence[int], Sequence[bool], str]] = None,
+        idx2: Optional[Union[Sequence[int], Sequence[bool], str]] = None,
+        mode: Literal["vanilla", "change"] = "change",
+        delta: float = 0.25,
+        batch_size: Optional[int] = None,
+        all_stats: bool = True,
+        batch_correction: bool = False,
+        batchid1: Optional[Iterable[str]] = None,
+        batchid2: Optional[Iterable[str]] = None,
+        fdr_target: float = 0.05,
+        silent: bool = False,
+        two_sided=True,
+        **kwargs,
+    ) -> pd.DataFrame:
+        r"""
+        \
+        A unified method for differential expression analysis.
+        Implements ``'vanilla'`` DE :cite:p:`Lopez18` and ``'change'`` mode DE :cite:p:`Boyeau19`.
+        Parameters
+        ----------
+        {doc_differential_expression}
+        **kwargs
+            Keyword args for :meth:`scvi.model.base.DifferentialComputation.get_bayes_factors`
+        Returns
+        -------
+        Differential expression DataFrame.
+        """
+        adata = self._validate_anndata(adata)
+
+        col_names = adata.var_names
+        model_fn = partial(
+            self.get_accessibility_estimates,
+            return_numpy=True,
+            n_samples=1,
+            batch_size=batch_size,
+        )
+        if two_sided:
+
+            def m1_domain_fn(samples):
+                return np.abs(samples) >= delta
+
+        else:
+
+            def m1_domain_fn(samples):
+                return samples >= delta
+            
+        result = _de_core(
+            self.get_anndata_manager(adata, required=True),
+            model_fn,
+            groupby,
+            group1,
+            group2,
+            idx1,
+            idx2,
+            all_stats,
+            scrna_raw_counts_properties,
+            col_names,
+            mode,
+            batchid1,
+            batchid2,
+            delta,
+            batch_correction,
+            fdr_target,
+            silent,
+            m1_domain_fn=m1_domain_fn,
+            **kwargs,
+        )
+
+        return result
+    
     @classmethod
     @setup_anndata_dsp.dedent
     def setup_anndata(
