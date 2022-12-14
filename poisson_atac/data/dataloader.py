@@ -3,46 +3,51 @@ import os
 import pandas as pd
 import scanpy as sc
 import scipy.io
+import scipy
 import numpy as np
 from ._utils import reads_to_fragments
 
 def load_trapnell(convert_counts=True):
     data_path = '/lustre/groups/ml01/workspace/laura.martens/data/trapnell_sciATAC_fetal_tissue'
-    cache_path = os.path.join(data_path, "all_tissues.h5ad")
+    cache_path = os.path.join(data_path, "all_tissues_filtered.h5ad")
     cached = os.path.exists(cache_path)
     if cached:
         adata = ad.read(cache_path)
-        adata.obs_names_make_unique()
-        sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
-        adata.layers["counts"] = adata.X.copy()
-        if convert_counts:
-            reads_to_fragments(adata, layer="counts")
-        adata.X = (adata.X > 0).astype(float)
     else:
         files = pd.Series(os.listdir(data_path, ))
         files = files[files.str.contains('.h5ad')]
         adatas = [ad.read(os.path.join(data_path, file)) for file in files]
         adata = ad.concat(adatas)
-        adata.write(cache_path)
+        adata.obs_names_make_unique()
+        sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
+        adata.X = scipy.sparse.csr_matrix(adata.X)
+        adata.layers["counts"] = adata.X.copy()
+        reads_to_fragments(adata, layer="counts")
+        adata.X = (adata.X > 0).astype(float)
+        adata.write(cache_path)      
     return adata
 
-def load_aerts(convert_counts=True):
+def load_aerts(convert_counts=False, filter_unknown=True):
     data_path = '/lustre/groups/ml01/workspace/laura.martens/data/aerts_fly_brain'
     cache_path = os.path.join(data_path, "All_timepoints.h5ad")
     cached = os.path.exists(cache_path)
     if cached:
         adata = ad.read(cache_path)
         adata.obs_names_make_unique()
-        #sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
+        sc.pp.filter_genes(adata, min_cells=int(adata.shape[0]*0.01))
+        adata.X = scipy.sparse.csr_matrix(adata.X)
         adata.layers["counts"] = adata.X.copy()
         if convert_counts:
             reads_to_fragments(adata, layer="counts")
         adata.X = (adata.X > 0).astype(float)
+        
+        if filter_unknown:
+            adata = adata[(~adata.obs.CellType_lvl1.str.contains('unk')) & (adata.obs.CellType_lvl1 != '-') ].copy()
     else:
         raise NotImplementedError
     return adata
     
-def load_neurips(data_path='/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data', only_train=True, gex=False, batch=None, convert_counts=True, multiome=False):
+def load_neurips(data_path='/lustre/groups/ml01/workspace/laura.martens/atac_poisson_data/data', only_train=True, gex=False, batch=None, convert_counts=True, multiome=False):
     path = os.path.join(data_path, 'neurips', 'phase2-private-data/common/openproblems_bmmc_multiome_phase2', 'openproblems_bmmc_multiome_phase2.manual_formatting.output_mod2.h5ad')
     adata = ad.read(path)
     
@@ -70,7 +75,7 @@ def load_neurips(data_path='/storage/groups/ml01/workspace/laura.martens/atac_po
     return adata
 
 # Cell types from https://satijalab.org/signac/articles/monocle.html
-def load_hematopoiesis(data_path='/storage/groups/ml01/workspace/laura.martens/atac_poisson_data/data', convert_counts=True):
+def load_hematopoiesis(data_path='/lustre/groups/ml01/workspace/laura.martens/atac_poisson_data/data', convert_counts=True):
     cache_path = os.path.join(data_path, "GSE129785_scATAC-Hematopoiesis", "GSE129785_scATAC-Hematopoiesis.h5ad")
     cached = os.path.exists(cache_path)
     if cached:
@@ -123,9 +128,10 @@ def save_for_seurat(adata, outdir, sep=[('-', ':')]):
     barcodes.to_csv(os.path.join(outdir, 'barcodes.csv'), index=False)
     print("Writing peaks")
     peaks.to_csv(os.path.join(outdir, 'peaks.csv'), index=False)
-    
+    print("Writing metadata")
+    adata.obs.to_csv(os.path.join(outdir, 'metadata.csv'), index=False)
     print("Writing binary matrix")
-    #scipy.io.mmwrite(os.path.join(outdir, 'matrix.mtx'), matrix)
+    scipy.io.mmwrite(os.path.join(outdir, 'matrix.mtx'), matrix)
     print("Writing count matrix")
     scipy.io.mmwrite(os.path.join(outdir, 'counts.mtx'), counts)
     print("Done!")
