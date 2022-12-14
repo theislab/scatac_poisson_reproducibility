@@ -10,27 +10,32 @@ import seaborn as sns
 import os
 
 
-def make_plot(all_counts, xlabel, figsize, prefix="", save_path=None):
+def make_plot(all_counts, xlabel, figsize, prefix="", ylabel=None, title=None, save_path=None):
     fig, ax = plt.subplots(figsize=figsize)
     all_counts["color"] = np.concatenate([np.array(['0', '1', '2']), np.repeat('>2', all_counts.shape[0]-3)])
-    g = sns.barplot(data=all_counts, x = 'bin', y = 'count', hue="color", palette="Blues", dodge=False, ax=ax)
-    g.set_yscale('log') # log scale so we can see the change
-    
+    ax = sns.barplot(data=all_counts, x = 'bin', y = 'count', hue="color", palette="Blues", dodge=False, ax=ax)
+    ax.set_yscale('log') # log scale so we can see the change
 
-    labels = g.get_xticklabels() # only plot every second label
+    labels = ax.get_xticklabels() # only plot every second label
     labels[1:len(all_counts):2] = list(np.repeat('', len(labels[1:len(all_counts):2])))
     if np.any(~all_counts["in_limit"]):
         limit = int(all_counts.loc[~all_counts["in_limit"], "bin"].values)
         labels = labels[:-1]
         labels += [f">{limit-1}"]
-    g.set_xticklabels(labels, rotation=90, va="top", fontsize = 12)
-    g.legend().set_visible(False)
-    g.grid(False)
-    plt.xlabel(xlabel)
+    ax.set_xticklabels(labels, rotation=90, va="top", fontsize = 12)
+    ax.legend().set_visible(False)
+    ax.grid(False)
+    ax.set_xlabel(xlabel)
+    
+    if ylabel:
+        ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+        
     plt.tight_layout()
     if save_path:
-        plt.savefig(os.path.join(save_path, f"{prefix}_{xlabel}_count_distribution.pdf"))
-        plt.savefig(os.path.join(save_path, f"{prefix}_{xlabel}_count_distribution.pdf"))
+        fig.savefig(os.path.join(save_path, f"{prefix}_{xlabel}_count_distribution.pdf"))
+        fig.savefig(os.path.join(save_path, f"{prefix}_{xlabel}_count_distribution.png"))
 
 def counts_per_bin(data, adata, limit):
     #count non-zero occurences   
@@ -54,6 +59,9 @@ def count_distribution(
     layer: Optional[str] = None, 
     limit: Optional[int] = None,
     figsize: Optional[Tuple] = None,
+    label: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    title: Optional[str] = None,
     save_prefix: Optional[str] = "", 
     save_path: Optional[str] = None,
     ):
@@ -64,11 +72,11 @@ def count_distribution(
         data = adata.X.data
     
     all_counts = counts_per_bin(data, adata, limit)
-    make_plot(all_counts, xlabel="Reads", figsize=figsize, prefix=save_prefix, save_path=save_path)
+    make_plot(all_counts, xlabel=("Reads" if label is None else label), figsize=figsize, prefix=save_prefix, ylabel=ylabel, title=title, save_path=save_path)
         
     ## Convert counts
     data = np.ceil(data/2)
     
     all_counts = counts_per_bin(data, adata, (limit//2 if limit is not None else None))
-    make_plot(all_counts, xlabel="Fragments", figsize=figsize, prefix=save_prefix, save_path=save_path)
+    make_plot(all_counts, xlabel=("Fragments" if label is None else label), figsize=figsize, prefix=save_prefix, ylabel=ylabel, title=title, save_path=save_path)
     
