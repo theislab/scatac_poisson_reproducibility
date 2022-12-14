@@ -16,6 +16,7 @@ def proportions(
     layer: Optional[str] = None, 
     figsize: Optional[Tuple] = None,
     fontsize: Optional[int] = 14,
+    label='read(s)',
     save_prefix: Optional[str] = "", 
     save_path: Optional[str] = None,
     ):
@@ -48,7 +49,7 @@ def proportions(
         shadow=False,
         startangle=45,
         textprops={'size': 'medium'}, 
-        labels=list(df["bin"].astype(str) + " read(s)")
+        labels=list(df["bin"].astype(str) + f" {label}")
     )
     if autopct is not None:
         for pct, color in zip(pie[-1], colors):
@@ -58,5 +59,5 @@ def proportions(
     plt.tight_layout()
     
     if save_path:
-        fig.savefig(os.path.join(save_path, f"{save_prefix}_proportions.png"))
-        fig.savefig(os.path.join(save_path, f"{save_prefix}_proportions.pdf"))
+        fig.savefig(os.path.join(save_path, f"{save_prefix}_proportions.png"), bbox_inches='tight')
+        fig.savefig(os.path.join(save_path, f"{save_prefix}_proportions.pdf"), bbox_inches='tight')
