@@ -246,4 +246,15 @@ def load_experiment(seml_collection, model_hash, get_experiment_fn, load_model=T
         model=None
     return ex, model, config
 
+def load_data(dataset, model, best, get_experiment, seml_database):
+     model_hash=best.loc[(dataset_map_simple[dataset], model_type_map[model]), "config_hash"]
+     ex, model, config = load_experiment(seml_database, model_hash, get_experiment)
+    
+     X_emb = model.get_latent_representation(ex.adata)
+     compute_embedding(ex.adata, X_emb)
+
+def plot_umap(adata, model, dataset, color_list=['cell_type', 'batch']):
+    for color in color_list:
+        sc.pl.umap(adata, color=color, save=f'{dataset}_{model}_{color}.png')
+
     
