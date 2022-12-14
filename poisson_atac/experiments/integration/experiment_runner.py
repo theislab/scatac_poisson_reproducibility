@@ -7,6 +7,7 @@ from poisson_atac.utils import evaluate_embedding
 
 import pandas as pd
 import scanpy as sc
+import numpy as np
 
 ex = Experiment()
 seml.setup_logger(ex)
@@ -35,7 +36,7 @@ class ExperimentWrapper:
 
     # With the prefix option we can "filter" the configuration for the sub-dictionary under "data".
     @ex.capture(prefix="data")
-    def init_dataset(self, dataset, batch, data_path):
+    def init_dataset(self, dataset, batch):
         """
         Perform dataset loading, preprocessing etc.
         Since we set prefix="data", this method only gets passed the respective sub-dictionary, enabling a modular
@@ -47,9 +48,15 @@ class ExperimentWrapper:
         self.dataset = dataset
         self.batch = (batch if batch is not None else 'NONE')
         if dataset == "neurips":
-            self.adata = patac.data.load_neurips(data_path, batch=batch, only_train=False)
+            self.adata = patac.data.load_neurips(batch=batch, only_train=False)
         elif dataset == "satpathy":
-            self.adata = patac.data.load_hematopoiesis(data_path)
+            self.adata = patac.data.load_hematopoiesis()
+        elif dataset == "aerts":
+            self.adata = patac.data.load_aerts()
+        elif dataset == "trapnell":
+            self.adata = patac.data.load_trapnell()
+        elif dataset == "trapnell_old":
+            self.adata = patac.data.load_trapnell()
             
 
     @ex.capture(prefix="model")
@@ -57,6 +64,10 @@ class ExperimentWrapper:
         self.model_type = model_type
         if self.model_type == 'scale':
             self.embedding_path = os.path.join(data_path, model_type, 'adata.h5ad')
+        elif self.model_type == "signac_harmony":
+            self.embedding_path = os.path.join(data_path, "signac", 'embedding_harmony.csv')
+        elif self.model_type == "cistopic_harmony":
+            self.embedding_path = os.path.join(data_path, "cistopic", 'embedding_harmony.csv')
         else:
             self.embedding_path = os.path.join(data_path, model_type, 'embedding.csv')
 
@@ -91,13 +102,22 @@ class ExperimentWrapper:
             mode = "fast"
         else:
             mode="basic"
+        
+        if self.dataset == 'trapnell':
+            #run on subsets
+            metrics = []  
+            for idx in np.array_split(np.arange(self.adata.n_obs), 10):    
+                metric = evaluate_embedding(self.adata[idx], X_emb[idx, :], self.label_key, batch_key=self.batch_key, mode=mode)
+                metrics.append(metric)
             
-        metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
-               
+            metrics = pd.concat(metrics, axis=1)
+        else:
+            metrics = evaluate_embedding(self.adata, X_emb, self.label_key, batch_key=self.batch_key, mode=mode)
+            
         results = {
             'embedding': metrics,
-            'nmi': metrics.loc['NMI_cluster/label', 0],
-            'ari': metrics.loc['ARI_cluster/label', 0],
+            'nmi': metrics.loc['NMI_cluster/label'].mean(),
+            'ari': metrics.loc['ARI_cluster/label'].mean(),
             'model_path': self.embedding_path
         }
         return results
