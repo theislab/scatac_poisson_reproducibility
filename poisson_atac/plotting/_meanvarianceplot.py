@@ -66,7 +66,7 @@ def mean_variance(
                      label=["Poisson limit", r"$\sigma^2=2\mu$"],
                      endpoint=[(1,1),(1,2)], 
                      linestyle=["solid", ":"],
-                     xlabel=r"Read mean $\mu$", 
+                     xlabel=r"Read mean $\mu$" , 
                      ylabel=r"Read variance $\sigma^2$",
                      prefix=f"{save_prefix}_reads",
                      save_path=save_path,
