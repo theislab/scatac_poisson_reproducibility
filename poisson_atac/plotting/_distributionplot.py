@@ -48,7 +48,7 @@ def counts_per_bin(data, adata, limit):
     all_counts['bin'] = pd.Categorical(all_counts['bin'].astype(int), categories=np.arange(all_counts['bin'].max() + 1).astype(int), ordered=True)
     
     if limit:
-        if max(all_counts['bin']) > limit:
+        if max(all_counts['bin']) < limit:
             limit = max(all_counts['bin'])
             import warnings
             warnings.warn("The limit is outside the count limit. It was set to the maximum count value.")
