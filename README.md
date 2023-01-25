@@ -1,14 +1,14 @@
 # Modeling ATAC data quantitatively
-Study to compare the modeling of the ATAC count data instead of the binarized matrix. All models have been implemented based on the [scvi-tools suite](https://github.com/scverse/scvi-tools).
+Study to compare the modeling of the ATAC count data instead of the binarized matrix. All models have been implemented based on the [scvi-tools suite](https://github.com/scverse/scvi-tools). IMPORTANT: The model is now implemented as an extension of `scvi-tools`. See [here](https://github.com/lauradmartens/scvi-tools) for installation.
 
-To setup the environment, run:
+To setup the environment to reproduce the results, run:
 ```python
-python setup.py install -e .
+pip install -e .
 ```
 
 - `poisson_atac/`: contains the code for the models, the dataloading, and plotting functions.
 - `poisson_atac/experiments`: Experiment files to reproduce the results of the paper. Each folder contains a `.yaml` file with the seml configuration and a `.py` file with the code to run the experiment.
-- `notebooks`: Includes an example analysis notebook for using the Poisson VAE model and notebooks to reproduce the Figures of the paper.
+- `notebooks`: Includes an example analysis notebook for using the Poisson VAE model `scvi_tools_example_notebook.ipynb` and notebooks to reproduce the Figures of the paper. Additionally, we showcase the use together with Signac in `scvi_tools_example_notebook_in_R.ipynb`. Please follow the [tutorial](https://docs.scvi-tools.org/en/stable/tutorials/notebooks/python_in_R.html) of `scvi-tools` to setup the environment. 
  
 All experiments where run through [seml](https://github.com/TUM-DAML/seml).
 The entry function is `ExperimentWrapper.__init__` in the respective experiment runners `experiment_runner.py`.
@@ -27,5 +27,4 @@ def load_config(seml_collection, model_hash):
     config = pd.json_normalize(file_data, sep='.')
     return config
 ```
-The trained models will also soon be provided.
 
