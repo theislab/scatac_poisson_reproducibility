@@ -1,7 +1,7 @@
 import logging
 import warnings
 from functools import partial
-from typing import Dict, Iterable, List, Optional, Sequence, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Union, Literal
 from xmlrpc.client import Boolean
 
 import numpy as np
@@ -10,7 +10,6 @@ import torch
 from anndata import AnnData
 from scipy.sparse import csr_matrix, vstack
 
-from scvi._compat import Literal
 from scvi._constants import REGISTRY_KEYS
 from scvi._utils import _doc_params
 from scvi.data import AnnDataManager
