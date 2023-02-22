@@ -139,7 +139,6 @@ notebooks/data/
 processed/
 panels/
 other/
-benchmark/
 launch.json
 *.out
 
