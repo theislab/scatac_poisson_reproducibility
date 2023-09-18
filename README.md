@@ -17,6 +17,7 @@ As you will not be able to connect to the mongoDB via SEML, you have to use the 
 
 ```python
 import json 
+import pandas as pd
 
 def load_config(seml_collection, model_hash):
     file_path = f'{seml_collection}.json' # Provide path to json
