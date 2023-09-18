@@ -1,0 +1,81 @@
+# Experiment configuration file.
+seml:
+  executable: notebooks/benchmark/signac/signac_experiment_runner.py
+  name: signac
+  output_dir: notebooks/benchmark/signac/logs
+  project_root_dir: /data/nasif12/home_if12/martensl/github_repos/scatac_poisson_private 
+  conda_environment: signac
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  #sbatch_options_template: GPU
+  sbatch_options:
+     #gres: gpu:1       # num GPUs
+     mem: 200G          # memory #TODO:Change
+     cpus-per-task: 32  # num cores
+     time: 1-00:00     # max time, D-HH:MM #TODO:Change
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed: 
+  model.model_type: "signac"
+
+grid:
+    data.seed:
+      type: choice
+      options: 
+          - 0
+          - 1 
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+
+Neurips:
+  fixed:
+    #data
+    data.dataset: "neurips" 
+    data.replacement: 
+      - !!python/tuple ["-", "-"]
+    setup.batch_key: "batch"
+    data.save_path: "/s/project/poisson_atac/benchmark/neurips/signac/"
+    training.model_path: "/s/project/poisson_atac/models/neurips/signac/"
+
+Satpathy:
+  fixed:
+    #data
+    data.dataset: "satpathy" 
+    data.replacement: 
+      - !!python/tuple ["_", "_"]
+    setup.batch_key: "Group"
+    data.save_path: "/s/project/poisson_atac/benchmark/satpathy/signac/"
+    training.model_path: "/s/project/poisson_atac/models/satpathy/signac/"
+
+Aerts:
+  fixed:
+    #data
+    data.dataset: "aerts" 
+    data.replacement: 
+      - !!python/tuple ["-", "-"]
+    setup.batch_key: "runName"
+    data.save_path: "/s/project/poisson_atac/benchmark/aerts/signac/"
+    training.model_path: "/s/project/poisson_atac/models/aerts/signac/"
+
+Trapnell:
+  fixed:
+    #data
+    data.dataset: "trapnell" 
+    data.replacement: 
+      - !!python/tuple ["-", "-"]
+    setup.batch_key: "sample_name"
+    data.save_path: "/s/project/poisson_atac/benchmark/trapnell/signac/"
+    training.model_path: "/s/project/poisson_atac/models/trapnell/signac/"
+
+
+      
+
+

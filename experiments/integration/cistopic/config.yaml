@@ -1,0 +1,84 @@
+# Experiment configuration file.
+seml:
+  executable: notebooks/benchmark/cistopic/cistopic_experiment_runner.py
+  name: CisTopic
+  output_dir: notebooks/benchmark/cistopic/logs
+  project_root_dir: /data/nasif12/home_if12/martensl/github_repos/scatac_poisson_private 
+  conda_environment: pycisTopic_env
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  #sbatch_options_template: GPU
+  sbatch_options:
+     #gres: gpu:1       # num GPUs
+     mem: 250G          # memory
+     cpus-per-task: 32  # num cores
+     time: 3-00:00     # max time, D-HH:MM
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed: 
+  training.path_to_mallet_binary: "/s/project/poisson_atac/mallet-2.0.8/bin/mallet"
+  training.n_topics: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] 
+  model.model_type: "cistopic"
+
+grid:
+    data.seed:
+      type: choice
+      options: 
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+
+Neurips:
+  fixed:
+    #data
+    data.dataset: "neurips" 
+    data.replacement: 
+      - !!python/tuple ["-", ":"]
+    setup.batch_key: "batch"
+    training.save_path: "/s/project/poisson_atac/benchmark/neurips/cistopic/"
+    training.model_path: "/s/project/poisson_atac/models/neurips/cistopic/"
+
+Satpathy:
+  fixed:
+    #data
+    data.dataset: "satpathy" 
+    data.replacement: 
+      - !!python/tuple ["_", ":"]
+      - !!python/tuple ["_", "-"]
+    setup.batch_key: "Group"
+    training.save_path: "/s/project/poisson_atac/benchmark/satpathy/cistopic/"
+    training.model_path: "/s/project/poisson_atac/models/satpathy/cistopic/"
+
+Aerts:
+  fixed:
+    #data
+    data.dataset: "aerts" 
+    data.replacement: 
+      - !!python/tuple ["-", ":"]
+    setup.batch_key: "runName"
+    training.save_path: "/s/project/poisson_atac/benchmark/aerts/cistopic/"
+    training.model_path: "/s/project/poisson_atac/models/aerts/cistopic/"
+
+Trapnell:
+  fixed:
+    #data
+    data.dataset: "trapnell" 
+    data.replacement: 
+      - !!python/tuple ["-", ":"]
+    setup.batch_key: "sample_name"
+    training.save_path: "/s/project/poisson_atac/benchmark/trapnell/cistopic/"
+    training.model_path: "/s/project/poisson_atac/models/trapnell/cistopic/"
+
+
+      
+
+

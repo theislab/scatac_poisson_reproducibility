@@ -2,40 +2,40 @@ import logging
 import warnings
 from functools import partial
 from typing import Dict, Iterable, List, Optional, Sequence, Union, Literal
-from xmlrpc.client import Boolean
 
 import numpy as np
 import pandas as pd
 import torch
 from anndata import AnnData
-from scipy.sparse import csr_matrix, vstack
-import scipy.special
+import scipy
 
-from scvi._constants import REGISTRY_KEYS
-from scvi._utils import _doc_params
+from scvi import REGISTRY_KEYS
 from scvi.data import AnnDataManager
 from scvi.data.fields import (
     CategoricalJointObsField,
     CategoricalObsField,
     LayerField,
-    NumericalObsField,
     NumericalJointObsField,
+    NumericalObsField,
 )
 from scvi.model._utils import (
     _get_batch_code_from_category,
-    scatac_raw_counts_properties,
-    scrna_raw_counts_properties
+    _init_library_size,
+    scrna_raw_counts_properties,
 )
-from scvi.model._utils import _init_library_size
 from scvi.model.base import UnsupervisedTrainingMixin
-from scvi.train._callbacks import SaveBestState
-from scvi.utils._docstrings import doc_differential_expression, setup_anndata_dsp
+from scvi.utils import setup_anndata_dsp
 
-from scvi.model.base import ArchesMixin, BaseModelClass, VAEMixin, RNASeqMixin
+from scvi.model.base import ArchesMixin, BaseModelClass, RNASeqMixin, VAEMixin
 from scvi.model.base._utils import _de_core
 
 from poisson_atac.module import BinaryVAE
-from torch.distributions import Poisson
+
+logger = logging.getLogger(__name__)
+
+_SCVI_LATENT_QZM = "_scvi_latent_qzm"
+_SCVI_LATENT_QZV = "_scvi_latent_qzv"
+_SCVI_OBSERVED_LIB_SIZE = "_scvi_observed_lib_size"
 
 
 class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
@@ -153,8 +153,6 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
         weight_decay: float = 1e-3,
         eps: float = 1e-08,
         early_stopping: bool = True,
-        early_stopping_patience: int = 50,
-        save_best: bool = True,
         check_val_every_n_epoch: Optional[int] = None,
         n_steps_kl_warmup: Union[int, None] = None,
         n_epochs_kl_warmup: Union[int, None] = 50,
@@ -218,12 +216,7 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             plan_kwargs.update(update_dict)
         else:
             plan_kwargs = update_dict
-        if save_best:
-            if "callbacks" not in kwargs.keys():
-                kwargs["callbacks"] = []
-            kwargs["callbacks"].append(
-                SaveBestState(monitor="reconstruction_loss_validation")
-            )
+        
 
         super().train(
             max_epochs=max_epochs,
@@ -232,7 +225,6 @@ class BinaryVI(ArchesMixin, RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, Ba
             validation_size=validation_size,
             early_stopping=early_stopping,
             early_stopping_monitor="reconstruction_loss_validation",
-            early_stopping_patience=early_stopping_patience,
             plan_kwargs=plan_kwargs,
             check_val_every_n_epoch=check_val_every_n_epoch,
             batch_size=batch_size,

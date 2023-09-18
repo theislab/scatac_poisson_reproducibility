@@ -1,0 +1,83 @@
+# Experiment configuration file.
+
+seml:
+  executable: poisson_atac/experiments/downsampling/downsampling_runner.py
+  name: ATAC_ATAC_prediction
+  output_dir: poisson_atac/experiments/downsampling/logs
+  project_root_dir: /data/nasif12/home_if12/martensl/github_repos/scatac_poisson_private/
+  conda_environment: poisson_atac_new
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  sbatch_options_template: GPU
+  sbatch_options:
+     gres: gpu:1       # num GPUs
+     mem: 70G          # memory
+     cpus-per-task: 4  # num cores
+     time: 0-24:01     # max time, D-HH:MM
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  training.max_epochs: 500
+  training.save_path: "/s/project/poisson_atac/models"
+  training.project_name: "downsampling"
+  optimization.regularization:
+    weight_decay: 1e-3
+    learning_rate: 1e-4
+
+
+Cross_validation_NeurIPS:
+  fixed:
+    #data
+    data.dataset: "neurips" #only testing on Neurips
+    setup.batch_key: "batch"
+    setup.label_key: "cell_type"
+    data.batch: None # all training & test batches
+
+  grid:
+    scvi.seed:
+      type: choice
+      options: 
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+    
+    data.downsample:
+      type: choice
+      options:
+          - 0.001
+          - 0.01
+          - 0.1
+          - 0.3
+          - 0.5
+          - 0.7
+          - 0.9
+          - 1.0
+
+  Poissonvi_observed:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      setup.model_params.n_latent: 50
+      setup.model_params.use_observed_lib_size: True
+
+  # Peakvi:
+  #   fixed:
+  #     model.model_type: "peakvi"
+  #     setup.layer: None #using binary data
+  #     setup.model_params.n_latent: 80
+
+  Binaryvi_observed:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+      setup.model_params.n_latent: 50
+      setup.model_params.use_observed_lib_size: True

@@ -1,0 +1,66 @@
+# Experiment configuration file.
+seml:
+  executable: poisson_atac/experiments/plot_umaps/experiment_runner.py
+  name: Plot_embeddings
+  output_dir: poisson_atac/experiments/plot_umaps/logs
+  project_root_dir: /data/nasif12/home_if12/martensl/github_repos/scatac_poisson_private/
+  conda_environment: poisson_atac_new
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  sbatch_options:
+     mem: 150G          # memory
+     cpus-per-task: 5  # num cores
+     time: 0-02:00     # max time, D-HH:MM
+
+###### BEGIN PARAMETER CONFIGURATION ######
+fixed:
+  training.fig_path: "/s/project/poisson_atac/panels/revision2/Figure2/embeddings"
+  model.save_path: "/s/project/poisson_atac/benchmark/"
+
+grid:
+  model.model_type:
+    type: choice
+    options:
+      - "poissonvi"
+      - "binaryvi"
+      - "peakvi"
+      - "signac"
+      - "signac_harmony"
+      - "cistopic"
+      - "cistopic_harmony"
+      - "scale"
+
+Neurips:
+  fixed:
+    #data
+    data.dataset: "neurips" 
+    setup.batch_key: "batch"
+    setup.label_key: "cell_type"
+    data.seed: 8 # best according to average precision
+    
+
+Satpathy:
+  fixed:
+    #data
+    data.dataset: "satpathy" 
+    setup.batch_key: "Group"
+    setup.label_key: "cell_type"
+    data.seed: 9 # best according to average precision
+
+Aerts:
+  fixed:
+    #data
+    data.dataset: "aerts" 
+    setup.batch_key: "runName"
+    setup.label_key: "CellType_lvl1"
+    data.seed: 5 # best according to average precision
+    
+Trapnell:
+  fixed:
+    #data
+    data.dataset: "trapnell" 
+    setup.batch_key: "sample_name"
+    setup.label_key: "cell_type"
+    data.seed: 1 # best according to average precision
+    

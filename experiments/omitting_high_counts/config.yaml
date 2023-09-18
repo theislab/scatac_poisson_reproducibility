@@ -1,0 +1,103 @@
+# Experiment configuration file.
+
+seml:
+  executable: poisson_atac/experiments/omitting_high_counts/experiment_runner.py
+  name: Omit_high_counts
+  output_dir: poisson_atac/experiments/omitting_high_counts/logs
+  project_root_dir: /data/nasif12/home_if12/martensl/github_repos/scatac_poisson_private/
+  conda_environment: poisson_atac_new
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  sbatch_options:
+     mem: 150G          # memory
+     cpus-per-task: 8  # num cores
+     time: 0-06:01     # max time, D-HH:MM #TODO: Adjust time to 12:00
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  setup.model_path: "/s/project/poisson_atac/models/"
+
+grid:
+  scvi.seed:
+    type: choice
+    options: 
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+
+# Evaluation over multiple train, val, test sets for statistics using all batches
+# Using best n_latent from initial sweep: see notebooks
+Cross_validation_NeurIPS:
+  fixed:
+    #data
+    data.dataset: "neurips" #only testing on Neurips
+    setup.batch_key: "batch"
+
+  Poissonvi_observed:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+
+  Binaryvi_observed:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+
+Cross_validation_Satpathy:
+  fixed:
+    #data
+    data.dataset: "satpathy"
+    setup.batch_key: "Group"
+
+  Poissonvi_observed:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+
+  Binaryvi_observed:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+
+CV_aerts:
+  fixed:
+    #data
+    data.dataset: "aerts" #only testing on Neurips
+    setup.batch_key: "runName"
+
+  Poissonvi:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+
+  Binaryvi:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+
+CV_trapnell:
+  fixed:
+    #data
+    data.dataset: "trapnell" #only testing on Neurips
+    setup.batch_key: "sample_name"
+
+  Poissonvi:
+    fixed:
+      model.model_type: "poissonvi"
+      setup.layer: "counts" #using count layer
+      
+  Binaryvi:
+    fixed:
+      model.model_type: "binaryvi"
+      setup.layer: None #using binary data
+
+

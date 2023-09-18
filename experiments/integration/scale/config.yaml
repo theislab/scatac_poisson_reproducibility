@@ -1,0 +1,73 @@
+# Experiment configuration file.
+seml:
+  executable: notebooks/benchmark/scale/scale_experiment_runner.py
+  name: scale
+  output_dir: notebooks/benchmark/scale/logs
+  project_root_dir: /data/nasif12/home_if12/martensl/github_repos/scatac_poisson_private 
+  conda_environment: scale_env
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 10
+  #sbatch_options_template: GPU
+  sbatch_options:
+     gres: gpu:1       # num GPUs
+     mem: 100G          # memory #TODO: CHange back
+     cpus-per-task: 32  # num cores
+     time: 1-00:00     # max time, D-HH:MM #TODO: Change back
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed: 
+  model.model_type: "scale"
+
+grid:
+    data.seed:
+      type: choice
+      options: 
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+
+Neurips:
+  fixed:
+    #data
+    data.dataset: "neurips" 
+    setup.batch_key: "batch"
+    training.save_path: "/s/project/poisson_atac/benchmark/neurips/scale/"
+    training.model_path: "/s/project/poisson_atac/models/neurips/scale/"
+
+Satpathy:
+  fixed:
+    #data
+    data.dataset: "satpathy" 
+    setup.batch_key: "Group"
+    training.save_path: "/s/project/poisson_atac/benchmark/satpathy/scale/"
+    training.model_path: "/s/project/poisson_atac/models/satpathy/scale/"
+
+Aerts:
+  fixed:
+    #data
+    data.dataset: "aerts" 
+    setup.batch_key: "runName"
+    training.save_path: "/s/project/poisson_atac/benchmark/aerts/scale/"
+    training.model_path: "/s/project/poisson_atac/models/aerts/scale/"
+
+Trapnell:
+  fixed:
+    #data
+    data.dataset: "trapnell" 
+    setup.batch_key: "sample_name"
+    training.save_path: "/s/project/poisson_atac/benchmark/trapnell/scale/"
+    training.model_path: "/s/project/poisson_atac/models/trapnell/scale/"
+
+
+      
+
+
