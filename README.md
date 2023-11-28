@@ -1,5 +1,14 @@
 # Modeling ATAC data quantitatively
-Study to compare the modeling of the ATAC count data instead of the binarized matrix. All models have been implemented based on the [scvi-tools suite](https://github.com/scverse/scvi-tools). IMPORTANT: The model is now implemented as an extension of `scvi-tools`. See [here](https://github.com/lauradmartens/scvi-tools) for installation.
+
+**`PoissonVI` is now part of the core scvi-tools repository: https://github.com/scverse/scvi-tools.**
+
+**You can call it using `scvi.external.POISSONVI`. Please also check out the [tutorial](https://docs.scvi-tools.org/en/stable/tutorials/notebooks/atac/PoissonVI.html).**
+
+
+
+
+
+Study to compare the modeling of the ATAC count data instead of the binarized matrix. All models have been implemented based on the [scvi-tools suite](https://github.com/scverse/scvi-tools). 
 
 To setup the environment to reproduce the results, run:
 ```python
